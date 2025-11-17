@@ -12,6 +12,9 @@ OnStepX is a powerful open-source telescope control system designed by Howard Du
 
 Configuration is primarily handled through the `Config.h` file. The most critical settings involve the two main axes that control the telescope mount.
 
+**Hardware Upgrades:**
+- **TMC5160 Drivers**: Upgraded from TMC2209 to TMC5160 for faster slewing speeds and improved overall performance. The TMC5160 provides higher current capability and better thermal management during rapid GoTo operations.
+
 ### AXIS1 - Right Ascension (RA) / Azimuth
 
 AXIS1 controls the primary rotation axis. For equatorial mounts, this is the Right Ascension (RA) axis that tracks celestial objects. For Alt/Az mounts, this is the Azimuth axis.
@@ -99,9 +102,6 @@ This setup is configured as an **Equatorial Mount (GEM)**:
 - Mount type: `GEM`
 - Hardware: MaxESP3 controller board
 - Harmonic drive system provides exceptional precision and minimal backlash
-
-**Hardware Upgrades:**
-- **TMC5160 Drivers**: Upgraded from TMC2209 to TMC5160 for faster slewing speeds and improved overall performance. The TMC5160 provides higher current capability and better thermal management during rapid GoTo operations.
 
 ## Getting Started
 
