@@ -49,7 +49,7 @@ class Home {
     // reset mount at home
     CommandError reset(bool fullReset = true);
 
-    // get the home position (Mount coordinate system)
+    // get the home position
     Coordinate getPosition(CoordReturn coordReturn = CR_MOUNT_EQU);
 
     // home sensing

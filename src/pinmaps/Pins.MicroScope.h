@@ -18,7 +18,9 @@
   #define SERIAL_B              Serial2
 #endif
 
-// Uses default ESP32 I2C GPIO21 (SDA) and GPIO22 (SCL)
+// Specify the ESP32 I2C pins
+#define I2C_SDA_PIN             21
+#define I2C_SCL_PIN             22
 
 // Misc. pins
 #ifndef ONE_WIRE_PIN

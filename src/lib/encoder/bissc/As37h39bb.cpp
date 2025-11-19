@@ -5,18 +5,17 @@
 #ifdef HAS_AS37_H39B_B
 
 // initialize BiSS-C encoder
-As37h39bb::As37h39bb(int16_t axis, int16_t maPin, int16_t sloPin) {
+// nvAddress holds settings for the 9 supported axes, 9*4 = 72 bytes; set nvAddress 0 to disable
+As37h39bb::As37h39bb(int16_t maPin, int16_t sloPin, int16_t axis) {
   if (axis < 1 || axis > 9) return;
-
-  this->axis = axis;
 
   this->maPin = maPin;
   this->sloPin = sloPin;
+  this->axis = axis;
 }
 
-// get encoder count relative to origin
-IRAM_ATTR bool As37h39bb::getCount(uint32_t &count) {
-
+// read encoder count
+IRAM_ATTR bool As37h39bb::readEnc(uint32_t &position) {
   bool foundAck = false;
   bool foundStart = false;
   bool foundCds = false;
@@ -28,7 +27,7 @@ IRAM_ATTR bool As37h39bb::getCount(uint32_t &count) {
   uint32_t encTurns = 0;
 
   // prepare for a reading
-  count = 0;
+  position = 0;
 
   // bit delay in nanoseconds
   int rate = lround(500000.0/BISSC_CLOCK_RATE_KHZ);
@@ -36,7 +35,7 @@ IRAM_ATTR bool As37h39bb::getCount(uint32_t &count) {
   #ifdef ESP32
     portMUX_TYPE bisscMutex = portMUX_INITIALIZER_UNLOCKED;
     taskENTER_CRITICAL(&bisscMutex);
-  #else
+  #elif defined(__TEENSYDUINO__)
     noInterrupts();
   #endif
 
@@ -84,7 +83,7 @@ IRAM_ATTR bool As37h39bb::getCount(uint32_t &count) {
         // the next 23 bits are the encoder absolute count
         for (int i = 0; i < 23; i++) {
           digitalWriteF(maPin, LOW_MA);
-          if (digitalReadF(sloPin) == HIGH_SLO) bitSet(count, 22 - i);
+          if (digitalReadF(sloPin) == HIGH_SLO) bitSet(position, 22 - i);
           delayNanoseconds(rate);
           digitalWriteF(maPin, HIGH_MA);
           delayNanoseconds(rate);
@@ -123,49 +122,50 @@ IRAM_ATTR bool As37h39bb::getCount(uint32_t &count) {
 
   #ifdef ESP32
     taskEXIT_CRITICAL(&bisscMutex);
-  #else
+  #elif defined(__TEENSYDUINO__)
     interrupts();
   #endif
 
   // trap errors
   int16_t errors = 0;
+  UNUSED(encWrn);
 
-  uint64_t encData = (uint64_t)count | ((uint64_t)encTurns << 23);
+  uint64_t encData = (uint64_t)position | ((uint64_t)encTurns << 23);
   encData = (encData << 1) | encErr;
   encData = (encData << 1) | encWrn;
 
-  if (!encWrn)     { DF("WRN: Encoder AS37_H39B_B"); D(axis); DLF(", Warn bit set"); warn++; }
-
-  if (!foundAck)   { DF("WRN: Encoder AS37_H39B_B"); D(axis); DLF(", Ack bit invalid"); errors++; } else
-  if (!foundStart) { DF("WRN: Encoder AS37_H39B_B"); D(axis); DLF(", Start bit invalid"); errors++; } else
-  if (!foundCds)   { DF("WRN: Encoder AS37_H39B_B"); D(axis); DLF(", Cds bit invalid"); errors++; } else
-  if (encErr)      { DF("WRN: Encoder AS37_H39B_B"); D(axis); DLF(", Error bit set"); errors++; } else
   if (crc6(encData) != as37Crc) {
-    DF("WRN: Encoder AS37_H39B_B"); D(axis); DF(", Crc invalid (overall "); D(((float)(++bad)/good)*100.0F); D("%"); DLF(")");
-    errors++;
-  } else good++;
+    bad++;
+    VF("WRN: Encoder AS37_H39B_B"); V(axis); VF(", Crc invalid (overall "); V(((float)bad/good)*100.0F); V("%"); VLF(")"); errors++;
+  } else {
+    good++;
+    if (!foundAck) { VF("WRN: Encoder AS37_H39B_B"); V(axis); VLF(", Ack bit invalid"); errors++; } else
+    if (!foundStart) { VF("WRN: Encoder AS37_H39B_B"); V(axis); VLF(", Start bit invalid"); errors++; } else
+    if (!foundCds) { VF("WRN: Encoder AS37_H39B_B"); V(axis); VLF(", Cds bit invalid"); errors++; } else
+    if (encErr) { VF("WRN: Encoder AS37_H39B_B"); V(axis); VLF(", Error bit set"); errors++; } else errors = 0;
+  }
 
   if (errors > 0) {
-    error++;
+    if (errors <= 2) warn = true; else error = true;
     return false;
   }
 
   #if BISSC_SINGLE_TURN == ON
     // extend negative to 32 bits
-    if (bitRead(count, 23)) { count |= 0b11111111100000000000000000000000; }
+    if (bitRead(position, 23)) { position |= 0b11111111100000000000000000000000; }
   #else
     // combine absolute and 9 low order bits of multi-turn count for a 32 bit count
-    count = count | ((encTurns & 0b0111111111) << 23);
+    position = position | ((encTurns & 0b0111111111) << 23);
   #endif
 
-  count += origin;
+  position += origin;
 
   #if BISSC_SINGLE_TURN == ON
-    if ((int32_t)count >= 8388608) count -= 8388608;
-    if ((int32_t)count < 0) count += 8388608;
+    if ((int32_t)position > 8388608) position -= 8388608;
+    if ((int32_t)position < 0) position += 8388608;
   #endif
 
-  count -= 4194304;
+  position -= 4194304;
 
   return true;
 }

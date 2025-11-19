@@ -1,9 +1,8 @@
 // -----------------------------------------------------------------------------------
 // Simple software SPI routines (CPOL=1, CPHA=1) just for TMC stepper drivers
 
+#include "../../Common.h"
 #include "SoftSpi.h"
-
-#include "../gpioEx/GpioEx.h"
 
 bool SoftSpi::init(int16_t mosi, int16_t sck, int16_t cs, int16_t miso) {
   this->miso = miso;
@@ -27,7 +26,7 @@ void SoftSpi::begin() {
   delayMicroseconds(1);
   pinMode(sck, OUTPUT);
   digitalWriteF(sck, HIGH);
-  pinModeEx(miso, INPUT);
+  pinMode(miso, INPUT);
   pinMode(mosi, OUTPUT);
   delayMicroseconds(1);
   digitalWriteEx(cs, LOW);
@@ -53,7 +52,7 @@ uint8_t SoftSpi::transfer(uint8_t data_out) {
     digitalWriteF(mosi, bitRead(data_out, i));
     delayMicroseconds(1);
     digitalWriteF(sck, HIGH);
-    if (miso != OFF) bitWrite(data_in, i, digitalReadF(miso)); else bitWrite(data_in, i, 0);
+    bitWrite(data_in, i, digitalReadF(miso));
     delayMicroseconds(1);
   }
   return data_in;
@@ -66,7 +65,7 @@ uint32_t SoftSpi::transfer32(uint32_t data_out) {
     digitalWriteF(mosi, bitRead(data_out, i));
     delayMicroseconds(1);
     digitalWriteF(sck, HIGH);
-    if (miso != OFF) bitWrite(data_in, i, digitalReadF(miso)); else bitWrite(data_in, i, 0);
+    bitWrite(data_in, i, digitalReadF(miso));
     delayMicroseconds(1);
   }
   return data_in;

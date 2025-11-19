@@ -5,23 +5,22 @@
 
 #ifdef STEP_DIR_LEGACY_PRESENT
 
-#include "../../../../gpioEx/GpioEx.h"
-
 // constructor
-StepDirGeneric::StepDirGeneric(uint8_t axisNumber, const StepDirDriverPins *Pins, const StepDirDriverSettings *Settings) : StepDirDriver(axisNumber, Pins, Settings) {
-  strcpy(axisPrefix, " Axis_StepDirGeneric, ");
-  axisPrefix[5] = '0' + axisNumber;
+StepDirGeneric::StepDirGeneric(uint8_t axisNumber, const StepDirDriverPins *Pins, const StepDirDriverSettings *Settings) {
+  this->axisNumber = axisNumber;
+  this->Pins = Pins;
+  settings = *Settings;
 }
 
-// setup driver
-bool StepDirGeneric::init() {
-  if (!StepDirDriver::init()) return false;
+// set up driver and parameters: microsteps, microsteps goto
+void StepDirGeneric::init(float param1, float param2, float param3, float param4, float param5, float param6) {
+  StepDirDriver::init(param1, param2, param3, param4, param5, param6);
 
   m0Pin = Pins->m0;
   m1Pin = Pins->m1;
   if (isDecayOnM2()) { decayPin = Pins->m2; m2Pin = OFF; } else { decayPin = Pins->decay; m2Pin = Pins->m2; }
   pinModeEx(decayPin, OUTPUT);
-  digitalWriteEx(decayPin, getDecayPinState(normalizedDecay));
+  digitalWriteEx(decayPin, getDecayPinState(settings.decay));
 
   #if DEBUG == VERBOSE
     VF("MSG: StepDirDriver"); V(axisNumber);
@@ -29,7 +28,7 @@ bool StepDirGeneric::init() {
     V(", m1="); if (Pins->m1 == OFF) VF("OFF"); else V(Pins->m1);
     V(", m2="); if (m2Pin == OFF) VF("OFF"); else V(m2Pin);
     V(", decay="); if (decayPin == OFF) VF("OFF"); else V(decayPin);
-    if (statusMode == ON) {
+    if (settings.status == ON) {
       V(", fault="); if (Pins->fault == OFF) VF("OFF"); else V(Pins->fault);
     }
     VL("");
@@ -58,12 +57,29 @@ bool StepDirGeneric::init() {
   pinModeEx(m2Pin, OUTPUT);
   digitalWriteEx(m2Pin, microstepBitCodeM2);
 
+  // automatically set fault status for known drivers
+  status.active = settings.status != OFF;
+
+  if (settings.status == ON) {
+    switch (settings.model) {
+      case DRV8825: settings.status = LOW; break;
+      case ST820:   settings.status = LOW; break;
+      default: break;
+    }
+  }
+
+  // set fault pin mode
+  if (settings.status == LOW) pinModeEx(Pins->fault, INPUT_PULLUP);
+  #ifdef PULLDOWN
+    if (settings.status == HIGH) pinModeEx(Pins->fault, INPUT_PULLDOWN);
+  #else
+    if (settings.status == HIGH) pinModeEx(Pins->fault, INPUT);
+  #endif
+
   // set mode switching support flags
-  // use high speed mode
+  // use low speed mode switch for TMC drivers or high speed otherwise
   modeSwitchAllowed = false;
   modeSwitchFastAllowed = microstepRatio != 1;
-
-  return true;
 }
 
 IRAM_ATTR void StepDirGeneric::modeMicrostepTracking() {
@@ -82,15 +98,21 @@ IRAM_ATTR int StepDirGeneric::modeMicrostepSlewing() {
 }
 
 void StepDirGeneric::modeDecayTracking() {
-  if (normalizedDecay == OFF) return;
-  int8_t state = getDecayPinState(normalizedDecay);
+  if (settings.decay == OFF) return;
+  int8_t state = getDecayPinState(settings.decay);
   if (state != OFF) digitalWriteEx(decayPin, state);
 }
 
 void StepDirGeneric::modeDecaySlewing() {
-  if (normalizedDecaySlewing == OFF) return;
-  int8_t state = getDecayPinState(normalizedDecaySlewing);
+  if (settings.decaySlewing == OFF) return;
+  int8_t state = getDecayPinState(settings.decaySlewing);
   if (state != OFF) digitalWriteEx(decayPin, state);
+}
+
+void StepDirGeneric::updateStatus() {
+  if (settings.status == LOW || settings.status == HIGH) {
+    status.fault = digitalReadEx(Pins->fault) == settings.status;
+  }
 }
 
 int8_t StepDirGeneric::getDecayPinState(int8_t decay) {
@@ -103,7 +125,7 @@ int8_t StepDirGeneric::getDecayPinState(int8_t decay) {
 }
 
 bool StepDirGeneric::isDecayOnM2() {
-  if (driverModel == TMC2209S || driverModel == TMC2225S) return true; else return false;
+  if (settings.model == TMC2209S || settings.model == TMC2225S) return true; else return false;
 }
 
 #endif

@@ -5,11 +5,7 @@
 
 #ifdef MOUNT_PRESENT
 
-#include "../../../lib/nv/Nv.h"
-
-#include "../limits/Limits.h"
 #include "../park/Park.h"
-#include "../site/Site.h"
 
 bool Home::command(char *reply, char *command, char *parameter, bool *supressFrame, bool *numericReply, CommandError *commandError) {
   UNUSED(reply);
@@ -50,7 +46,7 @@ bool Home::command(char *reply, char *command, char *parameter, bool *supressFra
         setReversal();
       } else {
         long l = atol(&parameter[2]);
-        if (l >= -648000 || l <= 648000) {
+        if (l >= -162000 || l <= 162000) {
           settings.axis1.senseOffset = l;
         } else *commandError = CE_PARAM_RANGE;
       }
@@ -67,7 +63,7 @@ bool Home::command(char *reply, char *command, char *parameter, bool *supressFra
         setReversal();
       } else {
         long l = atol(&parameter[2]);
-        if (l >= -648000 || l <= 648000) {
+        if (l >= -162000 || l <= 162000) {
           settings.axis2.senseOffset = l;
         } else *commandError = CE_PARAM_RANGE;
       }
@@ -81,7 +77,6 @@ bool Home::command(char *reply, char *command, char *parameter, bool *supressFra
     if (command[1] == 'F' && parameter[0] == 0) {
       *commandError = reset(true);
       park.reset();
-      limits.enabled(site.isDateTimeReady());
       *numericReply = false;
     } else return false;
 

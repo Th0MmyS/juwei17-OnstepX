@@ -3,9 +3,11 @@
 // uses the specified serial port
 #pragma once
 
-#include "../TlsBase.h"
+#include "../../../Common.h"
 
 #if defined(TIME_LOCATION_SOURCE) && TIME_LOCATION_SOURCE == GPS
+
+#include "../TLS.h"
 
 #ifndef GPS_TIMEOUT_MINUTES
   #define GPS_TIMEOUT_MINUTES 10 // wait up to 10 minutes to get lock, use 0 to disable timeout

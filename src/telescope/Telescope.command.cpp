@@ -2,16 +2,12 @@
 // OnStepX telescope control
 
 #include "../Common.h"
-
-#include "Telescope.h"
-
 #include "../lib/tasks/OnTask.h"
-#include "../lib/gpioEx/GpioEx.h"
-#include "../lib/nv/Nv.h"
-#include "../lib/convert/Convert.h"
 
+#include "../lib/convert/Convert.h"
 #include "../libApp/commands/ProcessCmds.h"
 #include "../libApp/weather/Weather.h"
+#include "Telescope.h"
 
 #include "addonFlasher/AddonFlasher.h"
 #include "mount/Mount.h"
@@ -27,7 +23,6 @@
 #include "rotator/Rotator.h"
 #include "focuser/Focuser.h"
 #include "auxiliary/Features.h"
-#include "../plugins/Plugins.config.h"
 
 // possible reset function for this MCU
 #ifdef HAL_RESET_FUNC
@@ -36,37 +31,10 @@
 
 bool Telescope::command(char reply[], char command[], char parameter[], bool *supressFrame, bool *numericReply, CommandError *commandError) {
 
-  #if PLUGIN1 != OFF && PLUGIN1_COMMAND_PROCESSING == ON
-    if (PLUGIN1.command(reply, command, parameter, supressFrame, numericReply, commandError)) return true;
-  #endif
-  #if PLUGIN2 != OFF && PLUGIN2_COMMAND_PROCESSING == ON
-    if (PLUGIN2.command(reply, command, parameter, supressFrame, numericReply, commandError)) return true;
-  #endif
-  #if PLUGIN3 != OFF && PLUGIN3_COMMAND_PROCESSING == ON
-    if (PLUGIN3.command(reply, command, parameter, supressFrame, numericReply, commandError)) return true;
-  #endif
-  #if PLUGIN4 != OFF && PLUGIN4_COMMAND_PROCESSING == ON
-    if (PLUGIN4.command(reply, command, parameter, supressFrame, numericReply, commandError)) return true;
-  #endif
-  #if PLUGIN5 != OFF && PLUGIN5_COMMAND_PROCESSING == ON
-    if (PLUGIN5.command(reply, command, parameter, supressFrame, numericReply, commandError)) return true;
-  #endif
-  #if PLUGIN6 != OFF && PLUGIN6_COMMAND_PROCESSING == ON
-    if (PLUGIN6.command(reply, command, parameter, supressFrame, numericReply, commandError)) return true;
-  #endif
-  #if PLUGIN7 != OFF && PLUGIN7_COMMAND_PROCESSING == ON
-    if (PLUGIN7.command(reply, command, parameter, supressFrame, numericReply, commandError)) return true;
-  #endif
-  #if PLUGIN8 != OFF && PLUGIN8_COMMAND_PROCESSING == ON
-    if (PLUGIN8.command(reply, command, parameter, supressFrame, numericReply, commandError)) return true;
-  #endif
-
   #ifdef MOUNT_PRESENT
     if (mount.command(reply, command, parameter, supressFrame, numericReply, commandError)) return true;
     if (guide.command(reply, command, parameter, supressFrame, numericReply, commandError)) return true;
-    #if GPIO_DEVICE != OFF
-      if (gpio.command(reply, command, parameter, supressFrame, numericReply, commandError)) return true;
-    #endif
+    if (gpio.command(reply, command, parameter, supressFrame, numericReply, commandError)) return true;
     if (mountStatus.command(reply, command, parameter, supressFrame, numericReply, commandError)) return true;
     if (goTo.command(reply, command, parameter, supressFrame, numericReply, commandError)) return true;
     if (park.command(reply, command, parameter, supressFrame, numericReply, commandError)) return true;
@@ -122,8 +90,6 @@ bool Telescope::command(char reply[], char command[], char parameter[], bool *su
     if (command[1] == 'C') {
       // spaces are encoded as '_'
       for (unsigned int i = 0; i < strlen(parameter); i++) if (parameter[i] == '_') parameter[i] = ' ';
-      // prefix with "REM> "
-      if (strstr(parameter, "ERR:") == parameter || strstr(parameter, "WRN:") == parameter || strstr(parameter, "MSG:") == parameter) D("REM> ");
       // a newline is encoded as '&' in the last char of message
       int l = strlen(parameter);
       if (l > 0 && parameter[l - 1] == '&') { parameter[l - 1] = 0; DL(parameter); } else { D(parameter); }
@@ -177,24 +143,18 @@ bool Telescope::command(char reply[], char command[], char parameter[], bool *su
     //            Returns: MTH DD YYYY#
     // :GVM#      General Message
     //            Returns: s# (where s is a string up to 16 chars)
-    // :GVN#      Get Firmware Number
+    // :GVN#      Get OnStepX Firmware Number
     //            Returns: M.mp#
-    // :GVP#      Get Product Name
+    // :GVP#      Get OnStepX Product Name
     //            Returns: s#
-    // :GVT#      Get Firmware Time
+    // :GVT#      Get OnStepX Firmware Time
     //            Returns: HH:MM:SS#
-    // :GVC#      Get Firmware Config Name
-    //            Returns: s#
-    // :GVH#      Get Firmware Hardware
-    //            Returns: s#
     if (command[1] == 'V' && parameter[1] == 0) {
       if (parameter[0] == 'D') strcpy(reply, firmware.date); else
       if (parameter[0] == 'M') sprintf(reply, "%s %i.%02i%s", firmware.name, firmware.version.major, firmware.version.minor, firmware.version.patch); else
       if (parameter[0] == 'N') sprintf(reply, "%i.%02i%s", firmware.version.major, firmware.version.minor, firmware.version.patch); else
       if (parameter[0] == 'P') strcpy(reply, firmware.name); else
-      if (parameter[0] == 'T') strcpy(reply, firmware.time); else
-      if (parameter[0] == 'C') { sstrcpy(reply, PRODUCT_DESCRIPTION, 40); } else
-      if (parameter[0] == 'H') strcpy(reply, PINMAP_STR); else *commandError = CE_CMD_UNKNOWN;
+      if (parameter[0] == 'T') strcpy(reply, firmware.time); else *commandError = CE_CMD_UNKNOWN;
       *numericReply = false;
     } else
 
@@ -226,18 +186,6 @@ bool Telescope::command(char reply[], char command[], char parameter[], bool *su
         if (parameter[1] == 'E') {
           sprintF(reply, "%3.1f", weather.getDewPoint());
           *numericReply = false;
-        } else
-
-        // :GX9F#     MCU temperature in deg. C
-        //            Returns: +/-n.n
-        if (parameter[1] == 'F') {
-          if (!isnan(telescope.mcuTemperature)) {
-            sprintF(reply, "%1.0f", telescope.mcuTemperature);
-            *numericReply = false;
-          } else {
-            *numericReply = true;
-            *commandError = CE_0;
-          }
         } else return false;
       } else
 

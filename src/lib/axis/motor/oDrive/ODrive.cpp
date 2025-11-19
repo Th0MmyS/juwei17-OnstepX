@@ -5,10 +5,9 @@
 
 #ifdef ODRIVE_MOTOR_PRESENT
 
-#include "../../../tasks/OnTask.h"
-#include "../../../gpioEx/GpioEx.h"
-
 #include "ODriveEnums.h"
+
+#include "../../../tasks/OnTask.h"
 
 ODriveMotor *odriveMotorInstance[2];
 IRAM_ATTR void moveODriveMotorAxis1() { odriveMotorInstance[0]->move(); }
@@ -22,20 +21,18 @@ IRAM_ATTR void moveODriveMotorAxis2() { odriveMotorInstance[1]->move(); }
 #endif
 
 // constructor
-ODriveMotor::ODriveMotor(uint8_t axisNumber, int8_t reverse, const ODriveDriverSettings *Settings, float radsPerCount, bool useFastHardwareTimers)
-                         :Motor(axisNumber, reverse) {
+ODriveMotor::ODriveMotor(uint8_t axisNumber, const ODriveDriverSettings *Settings, bool useFastHardwareTimers) {
   if (axisNumber < 1 || axisNumber > 2) return;
 
   driverType = ODRIVER;
-
+  strcpy(axisPrefix, "MSG: ODrive_, ");
+  axisPrefix[11] = '0' + this->axisNumber;
   #if ODRIVE_SWAP_AXES == ON
     this->axisNumber = 3 - axisNumber;
   #else
     this->axisNumber = axisNumber;
   #endif
 
-  strcpy(axisPrefix, " Axis_ODrive, ");
-  axisPrefix[5] = '0' + axisNumber;
 
   if (axisNumber > 2) useFastHardwareTimers = false;
   this->useFastHardwareTimers = useFastHardwareTimers;
@@ -48,9 +45,6 @@ ODriveMotor::ODriveMotor(uint8_t axisNumber, int8_t reverse, const ODriveDriverS
     #endif
   }
 
-  // set parameter default values during object creation
-  radsPerCount.valueDefualt = radsPerCount;
-
   // attach the function pointers to the callbacks
   odriveMotorInstance[this->axisNumber - 1] = this;
   switch (this->axisNumber) {
@@ -60,7 +54,7 @@ ODriveMotor::ODriveMotor(uint8_t axisNumber, int8_t reverse, const ODriveDriverS
 }
 
 bool ODriveMotor::init() {
-  if (!Motor::init()) return false;
+  if (axisNumber < 1 || axisNumber > 2) return false;
 
   if (axisNumber == 1) {
     pinModeEx(ODRIVE_RST_PIN, OUTPUT);
@@ -69,17 +63,18 @@ bool ODriveMotor::init() {
     
     #if ODRIVE_COMM_MODE == OD_UART
       ODRIVE_SERIAL.begin(ODRIVE_SERIAL_BAUD);
-      VF("MSG:"); V(axisPrefix); VLF("SERIAL channel init");
+      VLF("MSG: ODrive, SERIAL channel init");
     #elif ODRIVE_COMM_MODE == OD_CAN
       // .begin is done by the constructor
-      VF("MSG:"); V(axisPrefix); VLF("CAN channel init");
+      VLF("MSG: ODrive, CAN channel init");
     #endif
   }
 
   enable(false);
 
-  // start the motion timer
-  VF("MSG:"); V(axisPrefix); VF("start task to synthesize motion... ");
+  // start the motor timer
+  V(axisPrefix);
+  VF("start task to move motor... ");
   char timerName[] = "Target_";
   timerName[6] = '0' + axisNumber;
   taskHandle = tasks.add(0, 0, true, 0, callback, timerName);
@@ -91,63 +86,86 @@ bool ODriveMotor::init() {
     return false;
   }
 
-  ready = true;
   return true;
 }
 
-// set motor reverse state
+// set driver reverse state
 void ODriveMotor::setReverse(int8_t state) {
-  if (!ready) return;
-
   if (state == ON) {
-    VF("MSG:"); V(axisPrefix); VLF("axis reversal must be accomplished with hardware or ODrive setup!");
+    VF("WRN: ODrive"); V(axisNumber); VF(", ");
+    VLF("axis reversal must be accomplished with hardware or ODrive setup!");
   }
+}
+
+// set driver parameters
+void ODriveMotor::setParameters(float param1, float param2, float param3, float param4, float param5, float param6) {
+  UNUSED(param1); // general purpose settings defined in Extended.config.h and stored in NV, they can be modified at runtime
+  UNUSED(param2);
+  UNUSED(param3);
+  UNUSED(param4);
+  UNUSED(param5);
+  stepsPerMeasure = param6;
+  setSlewing(isSlewing);
+}
+
+// validate driver parameters
+bool ODriveMotor::validateParameters(float param1, float param2, float param3, float param4, float param5, float param6) {
+  UNUSED(param1);
+  UNUSED(param2);
+  UNUSED(param3);
+  UNUSED(param4);
+  UNUSED(param5);
+  UNUSED(param6);
+  return true;
 }
 
 // sets motor enable on/off (if possible)
 void ODriveMotor::enable(bool state) {
-  if (!ready) return;
-
-  VF("MSG:"); V(axisPrefix); VF("driver powered "); if (state) { VLF("up"); } else { VLF("down"); }
-
+  V(axisPrefix); VF("driver powered ");
+  if (state) { VLF("up"); } else { VLF("down"); } 
+  
   int requestedState = AXIS_STATE_IDLE;
   if (state) requestedState = AXIS_STATE_CLOSED_LOOP_CONTROL;
   
   #if ODRIVE_COMM_MODE == OD_UART 
   float timeout = 0.5;                        
     if(!_oDriveDriver->run_state(axisNumber - 1, requestedState, false, timeout)) {
-      VF("MSG:"); V(axisPrefix); VLF(" Power, closed loop control - command timeout!");
+      VF("WRN: ODrive"); V(axisNumber); VF(", ");
+      VLF(" Power, closed loop control - command timeout!");
       return;
     }
   #elif ODRIVE_COMM_MODE == OD_CAN
     if(!_oDriveDriver->RunState(axisNumber - 1, requestedState)) { //currently, always returns true...need to add timeout
-      VF("MSG:"); V(axisPrefix); VLF(" Power, closed loop control - command timeout!");
+      VF("WRN: ODrive"); V(axisNumber); VF(", ");
+      VLF(" Power, closed loop control - command timeout!");
       return;
     }
   #endif
 
-  VF("MSG:"); V(axisPrefix); VF("closed loop control - "); if (state) { VLF("Active"); } else { VLF("Idle"); }
+  V(axisPrefix); VF("closed loop control - ");
+  if (state) { VLF("Active"); } else { VLF("Idle"); }
 
   enabled = state;
 }
 
 void ODriveMotor::setInstrumentCoordinateSteps(long value) {
-  if (!ready) return;
-
   #if ODRIVE_ABSOLUTE == ON && ODRIVE_SYNC_LIMIT != OFF
     noInterrupts();
     long index = value - motorSteps;
     interrupts();
-    float indexDeg = index/radsPerCount.value;
+    float indexDeg = index/stepsPerMeasure;
     if (indexDeg >= -degToRadF(ODRIVE_SYNC_LIMIT/3600.0F) && indexDeg <= degToRadF(ODRIVE_SYNC_LIMIT/3600.0F))
   #endif
   Motor::setInstrumentCoordinateSteps(value);
 }
 
+// get the associated driver status
+DriverStatus ODriveMotor::getDriverStatus() {
+  return status;
+}
+
 // resets motor and target angular position in steps, also zeros backlash and index
 void ODriveMotor::resetPositionSteps(long value) {
-  if (!ready) return;
-
   // this is where the initial odrive position in "steps" is brought into agreement with the motor position in steps
   // not sure on this... but code below ignores (value,) gets the odrive position convert to steps and resets the motor
   // there (as the odrive encoders are absolute.)
@@ -158,9 +176,9 @@ void ODriveMotor::resetPositionSteps(long value) {
 
   // get ODrive position in fractionial Turns
   #if ODRIVE_COMM_MODE == OD_UART
-    oPosition = _oDriveDriver->GetPosition(axisNumber - 1)*TWO_PI*radsPerCount.value; // axis1/2 are in steps per radian
+    oPosition = _oDriveDriver->GetPosition(axisNumber - 1)*TWO_PI*stepsPerMeasure; // axis1/2 are in steps per radian
   #elif ODRIVE_COMM_MODE == OD_CAN
-    oPosition = _oDriveDriver->GetPosition(axisNumber - 1)*TWO_PI*radsPerCount.value; // axis1/2 are in steps per radian
+    oPosition = _oDriveDriver->GetPosition(axisNumber - 1)*TWO_PI*stepsPerMeasure; // axis1/2 are in steps per radian
   #endif
 
   noInterrupts();
@@ -180,8 +198,6 @@ void ODriveMotor::resetPositionSteps(long value) {
 
 // set frequency (+/-) in steps per second negative frequencies move reverse in direction (0 stops motion)
 void ODriveMotor::setFrequencySteps(float frequency) {
-  if (!ready) return;
-
   // negative frequency, convert to positive and reverse the direction
   int dir = 0;
   if (frequency > 0.0F) dir = 1; else if (frequency < 0.0F) { frequency = -frequency; dir = -1; }
@@ -226,16 +242,12 @@ void ODriveMotor::setFrequencySteps(float frequency) {
 }
 
 float ODriveMotor::getFrequencySteps() {
-  if (!ready) return 0.0F;
-
-  if (lastPeriod == 0) return 0.0F;
+  if (lastPeriod == 0) return 0;
   return (16000000.0F / lastPeriod) * absStep;
 }
 
 // set slewing state (hint that we are about to slew or are done slewing)
 void ODriveMotor::setSlewing(bool state) {
-  if (!ready) return;
-
   isSlewing = state;
 }
 
@@ -252,9 +264,9 @@ void ODriveMotor::poll() {
   #endif
   interrupts();
   #if ODRIVE_COMM_MODE == OD_UART
-    setPosition(axisNumber -1, target/(TWO_PI*radsPerCount.value));
+    setPosition(axisNumber -1, target/(TWO_PI*stepsPerMeasure));
   #elif ODRIVE_COMM_MODE == OD_CAN
-    _oDriveDriver->SetPosition(axisNumber -1, target/(TWO_PI*radsPerCount.value));
+    _oDriveDriver->SetPosition(axisNumber -1, target/(TWO_PI*stepsPerMeasure));
   #endif
 }
 

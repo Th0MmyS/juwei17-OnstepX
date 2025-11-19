@@ -1,7 +1,7 @@
 // BISS-C encoders
 #pragma once
 
-#include "../EncoderBase.h"
+#include "../Encoder.h"
 
 #ifdef HAS_BISS_C
 
@@ -34,34 +34,34 @@
   class Bissc : public Encoder {
     public:
       // get device ready for use
-      bool init();
+      void init();
 
       // set encoder origin
       void setOrigin(uint32_t count);
 
-      // read encoder position
+      // read encoder count
       int32_t read();
 
       // write encoder position
-      void write(int32_t position);
+      void write(int32_t count);
 
     protected:
-      // read encoder count with 1 second error recovery
-      // returns encoder count or INT32_MAX on error
-      uint32_t getCountWithErrorRecovery(bool now = false);
+      // read encoder position with error recovery
+      bool readEncLatest(uint32_t &position);
 
-      // read encoder count
-      virtual bool getCount(uint32_t &count);
+      // read encoder position
+      virtual bool readEnc(uint32_t &position);
 
       uint32_t good = 0;
       uint32_t bad = 0;
+      int16_t axis;
       uint16_t nvAddress = 0;
 
       int16_t maPin;
       int16_t sloPin;
 
       uint32_t lastValidTime = 0;
-      uint32_t lastValidCount = 0;
+      uint32_t lastValidPosition = 0;
   };
 
 #endif

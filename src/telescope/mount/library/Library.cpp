@@ -5,8 +5,6 @@
 
 #if defined(MOUNT_PRESENT)
 
-#include "../../../lib/nv/Nv.h"
-
 #include "../../Telescope.h"
 
 char const * objectStr[] = {"UNK", "OC", "GC", "PN", "DN", "SG", "EG", "IG", "KNT", "SNR", "GAL", "CN", "STR", "PLA", "CMT", "AST"};
@@ -23,7 +21,7 @@ void Library::init() {
 
   recMax = byteCount/rec_size; // maximum number of records
 
-  if (recMax == 0) { DLF("WRN: Library::init(); recMax == 0, no library space available"); return; }
+  if (recMax == 0) { VLF("WRN: Library::init(); recMax == 0, no library space available"); return; }
 
   // write default library structure to NV
   if (!nv.hasValidKey() || nv.isNull(byteMin, byteCount)) {

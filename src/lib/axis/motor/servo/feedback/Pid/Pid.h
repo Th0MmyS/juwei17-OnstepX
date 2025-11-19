@@ -2,17 +2,16 @@
 // servo motor PID feedback
 #pragma once
 
-#include "../FeedbackBase.h"
+#include "../Feedback.h"
 
 #ifdef SERVO_MOTOR_PRESENT
-
-#if AXIS1_SERVO_FEEDBACK == PID || AXIS2_SERVO_FEEDBACK == PID || AXIS3_SERVO_FEEDBACK == PID || \
-    AXIS4_SERVO_FEEDBACK == PID || AXIS5_SERVO_FEEDBACK == PID || AXIS6_SERVO_FEEDBACK == PID || \
-    AXIS7_SERVO_FEEDBACK == PID || AXIS8_SERVO_FEEDBACK == PID || AXIS9_SERVO_FEEDBACK == PID
 
 #include <QuickPID.h>  // https://github.com/Dlloydev/QuickPID
 
 // various options for QuickPID read about them here https://github.com/Dlloydev/QuickPID
+#ifndef PID_SLEWING_TO_TRACKING_TIME_MS
+  #define PID_SLEWING_TO_TRACKING_TIME_MS 1000 // time to switch from PID slewing to tracking parameters in milliseconds
+#endif
 #ifndef PID_SAMPLE_TIME_US
   #define PID_SAMPLE_TIME_US 10000 // PID sample time in microseconds (defaults to 10 milliseconds)
 #endif
@@ -28,25 +27,19 @@
 
 class Pid : public Feedback {
   public:
-    Pid(const float P, const float I, const float D);
+    Pid(const float P, const float I, const float D, const float P_goto, const float I_goto, const float D_goto, const float sensitivity = 0);
 
     // initialize PID control and parameters
-    void init(uint8_t axisNumber, ServoControl *control);
+    void init(uint8_t axisNumber, ServoControl *control, float controlRange);
 
     // reset feedback control and parameters
     void reset();
 
-    // returns the number of axis parameters
-    uint8_t getParameterCount() { return numParameters; }
-
-    // returns the specified axis parameter
-    AxisParameter* getParameter(uint8_t number) { if (number > numParameters) return &invalid; else return parameter[number]; }
+    // get driver type code so clients understand the use of the six parameters
+    char getParameterTypeCode() { return 'P'; }
 
     // set feedback control direction
     void setControlDirection(int8_t state);
-
-    // set feedback control range
-    void setControlRange(float controlRange);
 
     // select PID param set for tracking
     void selectTrackingParameters();
@@ -57,24 +50,34 @@ class Pid : public Feedback {
     // variable feedback, variable PID params
     void variableParameters(float percent);
 
-    inline void poll() { }
+    inline void poll() {
+      pid->Compute();
+
+      if (!useVariableParameters) {
+        if ((long)(millis() - nextSelectIncrementTime) > 0) {
+          if (trackingSelected) parameterSelect--;
+          if (parameterSelect < 0) parameterSelect = 0;
+          variableParameters(parameterSelect);
+          nextSelectIncrementTime = millis() + round(PID_SLEWING_TO_TRACKING_TIME_MS/100.0F);
+        }
+      }
+    }
 
   private:
     QuickPID *pid;
 
-    char axisPrefix[26] = " Axis_ServoFeedbackPID, "; // prefix for debug messages
+    float p, i, d, c, sensitivity;
+    float lastP = 0;
+    float lastI = 0;
+    float lastD = 0;
 
+    unsigned long timeSinceLastUpdate = 0;     // for varaible pid update
+
+    char axisPrefix[14] = "MSG: Pid_, ";       // prefix for debug messages
+
+    int parameterSelect = 0;
     bool trackingSelected = true;
-
-    // runtime adjustable settings
-    AxisParameter P = {NAN, NAN, NAN, 0.0, 10000.0, AXP_FLOAT_IMMEDIATE, "P"};
-    AxisParameter I = {NAN, NAN, NAN, 0.0, 10000.0, AXP_FLOAT_IMMEDIATE, "I"};
-    AxisParameter D = {NAN, NAN, NAN, 0.0, 10000.0, AXP_FLOAT_IMMEDIATE, "D"};
-
-    const int numParameters = 3;
-    AxisParameter* parameter[4] = {&invalid, &P, &I, &D};
+    unsigned long nextSelectIncrementTime = 0;
 };
-
-#endif
 
 #endif

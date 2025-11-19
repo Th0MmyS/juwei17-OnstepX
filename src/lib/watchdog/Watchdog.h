@@ -4,18 +4,18 @@
 
 #include "../../Common.h"
 
-#if defined(WATCHDOG) && WATCHDOG != OFF || true
+#if !defined(__AVR_ATmega2560__) && defined(WATCHDOG) && WATCHDOG != OFF
 
 class Watchdog {
   public:
     // initialize and start the watchdog with timeout (to reset MCU) of seconds
     void enable(int seconds);
 
-    // call at least once per timeout period or the MCU will be reset if the WD is enabled
-    void reset();
+    // call atleast once every (seconds) to reset the count or the MCU will be reset if WD is enabled
+    inline void reset() { count = 0; }
 
     // disable the watchdog
-    void disable();
+    inline void disable() { enabled = false; }
 
     // for internal use
     void poll();

@@ -6,7 +6,6 @@
 #if defined(MOUNT_PRESENT)
 
 #include "../../../lib/tasks/OnTask.h"
-#include "../../../lib/nv/Nv.h"
 
 #include "../../Telescope.h"
 #include "../Mount.h"
@@ -60,9 +59,6 @@ void Goto::init() {
   if (settings.usPerStepCurrent < usPerStepBase/2.0F) settings.usPerStepCurrent = usPerStepBase/2.0F;
   if (settings.usPerStepCurrent > usPerStepBase*2.0F) settings.usPerStepCurrent = usPerStepBase*2.0F;
 
-  axis1.setFrequencyMax(((1000000.0F/usPerStepBase)/axis1.getStepsPerMeasure())*2.0F);
-  axis2.setFrequencyMax(((1000000.0F/usPerStepBase)/axis2.getStepsPerMeasure())*2.0F);
-
   if (AXIS1_SYNC_THRESHOLD != OFF || AXIS2_SYNC_THRESHOLD != OFF) absoluteEncodersPresent = true;
   if (AXIS1_HOME_TOLERANCE != 0.0F || AXIS2_HOME_TOLERANCE != 0.0F ||
       AXIS1_TARGET_TOLERANCE != 0.0F || AXIS2_TARGET_TOLERANCE != 0.0F || absoluteEncodersPresent) encodersPresent = true;
@@ -91,6 +87,7 @@ CommandError Goto::request(Coordinate coords, PierSideSelect pierSideSelect, boo
 
   lastAlignTarget = target;
 
+
   #if AXIS1_SECTOR_GEAR == ON || AXIS2_TANGENT_ARM == ON
     double a1, a2;
 
@@ -98,16 +95,16 @@ CommandError Goto::request(Coordinate coords, PierSideSelect pierSideSelect, boo
     #if AXIS1_SECTOR_GEAR == ON
       transform.mountToInstrument(&target, &a1, &a2);
       a1 = a1 - axis1.getIndexPosition();
-      if (a1 < axis1.getLimitMin()) return CE_SLEW_ERR_OUTSIDE_LIMITS;
-      if (a1 > axis1.getLimitMax()) return CE_SLEW_ERR_OUTSIDE_LIMITS;
+      if (a1 < axis1.settings.limits.min) return CE_SLEW_ERR_OUTSIDE_LIMITS;
+      if (a1 > axis1.settings.limits.max) return CE_SLEW_ERR_OUTSIDE_LIMITS;
     #endif
 
     // handle special case of a tangent arm Dec
     #if AXIS2_TANGENT_ARM == ON
       transform.mountToInstrument(&target, &a1, &a2);
       a2 = a2 - axis2.getIndexPosition();
-      if (a2 < axis2.getLimitMin()) return CE_SLEW_ERR_OUTSIDE_LIMITS;
-      if (a2 > axis2.getLimitMax()) return CE_SLEW_ERR_OUTSIDE_LIMITS;
+      if (a2 < axis2.settings.limits.min) return CE_SLEW_ERR_OUTSIDE_LIMITS;
+      if (a2 > axis2.settings.limits.max) return CE_SLEW_ERR_OUTSIDE_LIMITS;
     #endif
   #endif
 
@@ -229,8 +226,7 @@ CommandError Goto::setTarget(Coordinate *coords, PierSideSelect pierSideSelect, 
 
   target = *coords;
 
-  if (transform.mountType == ALTAZM) transform.horToEqu(&target); else
-  if (transform.mountType == ALTALT) transform.aaToEqu(&target); else transform.equToHor(&target);
+  if (transform.mountType == ALTAZM) transform.horToEqu(&target); else transform.equToHor(&target);
 
   // east side of pier is always the default polar-home position
   // east side of pier - we're in the western sky and the HA's are positive
@@ -339,10 +335,8 @@ CommandError Goto::setTarget(Coordinate *coords, PierSideSelect pierSideSelect, 
   if (target.pierSide == PIER_SIDE_EAST) target.a1Correction = axis1TargetCorrectionE;
   if (target.pierSide == PIER_SIDE_WEST) target.a1Correction = axis1TargetCorrectionW;
 
+  if (transform.mountType == ALTAZM) transform.horToEqu(&target); else transform.equToHor(&target);
   transform.observedPlaceToMount(&target);
-  if (transform.mountType == ALTAZM) transform.horToEqu(&target); else
-  if (transform.mountType == ALTALT) transform.aaToEqu(&target); else transform.equToHor(&target);
-
   transform.hourAngleToRightAscension(&target, false);
 
   return CE_NONE;
@@ -389,8 +383,7 @@ CommandError Goto::alignAddStar(bool sync) {
 
     // update the targets HA and Horizon coords as necessary
     transform.rightAscensionToHourAngle(&lastAlignTarget, true);
-    if (transform.mountType == ALTAZM) transform.equToHor(&lastAlignTarget); else
-    if (transform.mountType == ALTALT) transform.equToAa(&lastAlignTarget);
+    if (transform.mountType == ALTAZM) transform.equToHor(&lastAlignTarget);
 
     #if ALIGN_MAX_NUM_STARS > 1
       e = transform.align.addStar(alignState.currentStar, alignState.lastStar, &lastAlignTarget, &mountPosition);
@@ -617,8 +610,7 @@ void Goto::poll() {
         nearTarget.h -= slewDestinationDistHA;
         nearTarget.d -= slewDestinationDistDec;
 
-        if (transform.mountType == ALTAZM) transform.equToHor(&nearTarget); else
-        if (transform.mountType == ALTALT) transform.equToAa(&nearTarget);
+        if (transform.mountType == ALTAZM) transform.equToHor(&nearTarget);
 
         double a1, a2;
         transform.mountToInstrument(&nearTarget, &a1, &a2);

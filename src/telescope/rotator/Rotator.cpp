@@ -29,11 +29,7 @@ void Rotator::init() {
   readSettings();
 
   VLF("MSG: Rotator, init (Axis3)");
-  if (!axis3.init(&motor3)) {
-    initError.driver = true;
-    DLF("ERR: Rotator::init(), no motion controller for Axis3!");
-    return;
-  }
+  if (!axis3.init(&motor3)) { initError.driver = true; DLF("ERR: Axis3, no motion controller!"); }
   axis3.resetPositionSteps(0);
   axis3.setBacklashSteps(settings.backlash);
   axis3.setFrequencyMax(AXIS3_SLEW_RATE_BASE_DESIRED*2.0F);
@@ -42,20 +38,16 @@ void Rotator::init() {
   axis3.setSlewAccelerationTime(AXIS3_ACCELERATION_TIME);
   axis3.setSlewAccelerationTimeAbort(AXIS3_RAPID_STOP_TIME);
   if (AXIS3_POWER_DOWN == ON) axis3.setPowerDownTime(AXIS3_POWER_DOWN_TIME);
-
-  ready = true;
 }
 
 void Rotator::begin() {
-  if (ready) {
-    axis3.calibrateDriver();
+  axis3.calibrateDriver();
 
-    // start monitor task
-    VF("MSG: Rotator, start derotation task (rate 1s priority 6)... ");
-    if (tasks.add(1000, 0, true, 6, rotWrapper, "RotMon")) { VLF("success"); } else { VLF("FAILED!"); }
+  // start monitor task
+  VF("MSG: Rotator, start derotation task (rate 1s priority 6)... ");
+  if (tasks.add(1000, 0, true, 6, rotWrapper, "RotMon")) { VLF("success"); } else { VLF("FAILED!"); }
 
-    unpark();
-  }
+  unpark();
 }
 
 // get backlash in steps
@@ -112,7 +104,7 @@ void Rotator::setMoveRate(int value) {
 CommandError Rotator::move(Direction dir) {
   if (settings.parkState >= PS_PARKED) return CE_PARKED;
 
-  axis3.setSynchronizedFrequency(0.0F);
+  axis3.setFrequencyBase(0.0F);
 
   return axis3.autoSlew(dir, moveRate);
 }
@@ -145,7 +137,7 @@ CommandError Rotator::gotoTarget(float target) {
   VF("MSG: Rotator, goto target coordinate set ("); V(target); VL(" deg)");
   VLF("MSG: Rotator, attempting goto");
 
-  axis3.setSynchronizedFrequency(0.0F);
+  axis3.setFrequencyBase(0.0F);
   axis3.setTargetCoordinate(target);
 
   CommandError e = axis3.autoGoto(settings.gotoRate);
@@ -266,17 +258,17 @@ void Rotator::monitor() {
           pr = parallacticRate(&current);
           if (derotatorReverse) pr = -pr;
           axis3.setSynchronized(true);
-          axis3.setSynchronizedFrequency(pr);
+          axis3.setFrequencyBase(pr);
         }
       #endif
 
       if (homing) {
-        axis3.resetPosition((axis3.getLimitMax() + axis3.getLimitMin())/2.0F);
+        axis3.resetPosition((axis3.settings.limits.max + axis3.settings.limits.min)/2.0F);
         axis3.setBacklashSteps(getBacklash());
         homing = false;
       }
 
-      // delayed write of rotator position
+      // delayed write of focuser position
       if (ROTATOR_WRITE_DELAY != 0) {
         if (secs > writeTime) {
           settings.position = axis3.getInstrumentCoordinate();

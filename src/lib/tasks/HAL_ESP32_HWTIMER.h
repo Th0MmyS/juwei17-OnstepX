@@ -60,8 +60,7 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
   void HAL_HWTIMER1_DONE() {
     HAL_HWTIMER1_FUN = NULL;
-    timerDetachInterrupt(itimer1);
-    timerEnd(itimer1);
+    timerAlarmDisable(itimer1);
   }
 
   #define HAL_HWTIMER1_SET_PERIOD() timerAlarmWrite(itimer1, _nextPeriod1, true)
@@ -95,8 +94,7 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
   void HAL_HWTIMER2_DONE() {
     HAL_HWTIMER2_FUN = NULL;
-    timerDetachInterrupt(itimer2);
-    timerEnd(itimer2);
+    timerAlarmDisable(itimer2);
   }
   
   #define HAL_HWTIMER2_SET_PERIOD() timerAlarmWrite(itimer2, _nextPeriod2, true)
@@ -130,8 +128,7 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
   void HAL_HWTIMER3_DONE() {
     HAL_HWTIMER3_FUN = NULL;
-    timerDetachInterrupt(itimer3);
-    timerEnd(itimer3);
+    timerAlarmDisable(itimer3);
   }
   
   #define HAL_HWTIMER3_SET_PERIOD() timerAlarmWrite(itimer3, _nextPeriod3, true)
@@ -165,8 +162,7 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
   void HAL_HWTIMER4_DONE() {
     HAL_HWTIMER4_FUN = NULL;
-    timerDetachInterrupt(itimer4);
-    timerEnd(itimer4);
+    timerAlarmDisable(itimer4);
   }
 
   #define HAL_HWTIMER4_SET_PERIOD() timerAlarmWrite(itimer4, _nextPeriod4, true)
@@ -186,31 +182,31 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 // disable hardware timer based tasks by clearing interrupt flag(s)
 void timerAlarmsDisable() {
 #ifdef TASKS_HWTIMER1_ENABLE
-  if (itimer1 != NULL) timerAlarmDisable(itimer1);
+  timerAlarmDisable(itimer1);
 #endif
 #ifdef TASKS_HWTIMER2_ENABLE
-  if (itimer2 != NULL) timerAlarmDisable(itimer2);
+  timerAlarmDisable(itimer2);
 #endif
 #ifdef TASKS_HWTIMER3_ENABLE
-  if (itimer3 != NULL) timerAlarmDisable(itimer3);
+  timerAlarmDisable(itimer3);
 #endif
 #ifdef TASKS_HWTIMER4_ENABLE
-  if (itimer4 != NULL) timerAlarmDisable(itimer4);
+  timerAlarmDisable(itimer4);
 #endif
 }
 
 // enable hardware timer based tasks by setting interrupt flag(s)
 void timerAlarmsEnable()  {
 #ifdef TASKS_HWTIMER1_ENABLE
-  if (itimer1 != NULL) timerAlarmEnable(itimer1);
+  timerAlarmEnable(itimer1);
 #endif
 #ifdef TASKS_HWTIMER2_ENABLE
-  if (itimer2 != NULL) timerAlarmEnable(itimer2);
+  timerAlarmEnable(itimer2);
 #endif
 #ifdef TASKS_HWTIMER3_ENABLE
-  if (itimer3 != NULL) timerAlarmEnable(itimer3);
+  timerAlarmEnable(itimer3);
 #endif
 #ifdef TASKS_HWTIMER4_ENABLE
-  if (itimer4 != NULL) timerAlarmEnable(itimer4);
+  timerAlarmEnable(itimer4);
 #endif
 }

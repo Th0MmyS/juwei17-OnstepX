@@ -7,7 +7,6 @@
 
 #if AXIS1_PEC == ON
   #include "../../../lib/tasks/OnTask.h"
-  #include "../../../lib/nv/Nv.h"
 
   #include "../../../lib/sense/Sense.h"
   #include "../../Telescope.h"
@@ -58,7 +57,7 @@
         if (buffer == NULL) {
           bufferSize = 0;
           initError.value = true;
-          DLF("WRN: Pec::init(), bufferSize exceeds available RAM - PEC disabled");
+          VLF("WRN: Pec::init(), bufferSize exceeds available RAM - PEC disabled");
         } else {
           VF("MSG: Mount, PEC allocated buffer "); V(bufferSize * (long)sizeof(*buffer)); VLF(" bytes");
 

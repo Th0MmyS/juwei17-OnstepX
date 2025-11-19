@@ -14,8 +14,6 @@ extern Axis axis3;
 bool Rotator::command(char *reply, char *command, char *parameter, bool *supressFrame, bool *numericReply, CommandError *commandError) {
   *supressFrame = false;
 
-  if (!ready) return false;
-
   // process any rotator axis commands
   if (axis3.command(reply, command, parameter, supressFrame, numericReply, commandError)) return true;
 
@@ -64,14 +62,14 @@ bool Rotator::command(char *reply, char *command, char *parameter, bool *supress
     // :rI#       Get rotator mInimum position (in degrees)
     //            Returns: n#
     if (command[1] == 'I') {
-      sprintf(reply,"%ld",(long)round(axis3.getLimitMin()));
+      sprintf(reply,"%ld",(long)round(axis3.settings.limits.min));
       *numericReply = false;
     } else
 
     // :rM#       Get rotator Max position (in degrees)
     //            Returns: n#
     if (command[1] == 'M') {
-      sprintf(reply,"%ld",(long)round(axis3.getLimitMax()));
+      sprintf(reply,"%ld",(long)round(axis3.settings.limits.max));
       *numericReply = false;
     } else
 
@@ -189,7 +187,7 @@ bool Rotator::command(char *reply, char *command, char *parameter, bool *supress
     //            Returns: Nothing
     if (command[1] == 'F') {
       settings.parkState = PS_UNPARKED;
-      *commandError = axis3.resetPosition((axis3.getLimitMax() + axis3.getLimitMin())/2.0F);
+      *commandError = axis3.resetPosition((axis3.settings.limits.max + axis3.settings.limits.min)/2.0F);
       axis3.setBacklashSteps(getBacklash());
       *numericReply = false;
     } else
@@ -206,7 +204,7 @@ bool Rotator::command(char *reply, char *command, char *parameter, bool *supress
           }
         } else *commandError = CE_PARKED;
       } else {
-        *commandError = gotoTarget((axis3.getLimitMax() + axis3.getLimitMin())/2.0F);
+        *commandError = gotoTarget((axis3.settings.limits.max + axis3.settings.limits.min)/2.0F);
       }
       *numericReply = false;
     } else
@@ -226,7 +224,7 @@ bool Rotator::command(char *reply, char *command, char *parameter, bool *supress
     //            Returns: Nothing
     if (command[1] == '-') {
       derotatorEnabled = false;
-      axis3.setSynchronizedFrequency(0.0F);
+      axis3.setFrequencyBase(0.0F);
       *numericReply = false;
     } else
 

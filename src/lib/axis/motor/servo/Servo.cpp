@@ -20,19 +20,16 @@ IRAM_ATTR void moveServoMotorAxis8() { servoMotorInstance[7]->move(); }
 IRAM_ATTR void moveServoMotorAxis9() { servoMotorInstance[8]->move(); }
 
 // constructor
-ServoMotor::ServoMotor(uint8_t axisNumber, int8_t reverse,
-                       ServoDriver *Driver, Filter *filter,
-                       Encoder *encoder, uint32_t encoderOrigin, bool encoderReverse,
-                       Feedback *feedback, ServoControl *control,
-                       long syncThreshold, bool useFastHardwareTimers)
-                       :Motor(axisNumber, reverse) {
+ServoMotor::ServoMotor(uint8_t axisNumber, ServoDriver *Driver, Filter *filter, Encoder *encoder, uint32_t encoderOrigin, bool encoderReverse, Feedback *feedback, ServoControl *control, long syncThreshold, bool useFastHardwareTimers) {
   if (axisNumber < 1 || axisNumber > 9) return;
 
   driverType = SERVO;
+  strcpy(axisPrefix, "MSG: Servo_, ");
+  axisPrefix[10] = '0' + axisNumber;
+  strcpy(axisPrefixWarn, "WRN: Servo_, ");
+  axisPrefixWarn[10] = '0' + axisNumber;
 
-  strcpy(axisPrefix, " Axis_Servo, ");
-  axisPrefix[5] = '0' + axisNumber;
-
+  this->axisNumber = axisNumber;
   this->filter = filter;
   this->encoder = encoder;
   this->feedback = feedback;
@@ -44,9 +41,12 @@ ServoMotor::ServoMotor(uint8_t axisNumber, int8_t reverse,
 
   this->driver = Driver;
 
-  this->encoderOrigin = encoderOrigin;
+  encoder->init();
+  encoder->setOrigin(encoderOrigin);
   this->encoderReverse = encoderReverse;
   this->encoderReverseDefault = encoderReverse;
+
+  feedback->getDefaultParameters(&default_param1, &default_param2, &default_param3, &default_param4, &default_param5, &default_param6);
 
   // attach the function pointers to the callbacks
   servoMotorInstance[axisNumber - 1] = this;
@@ -61,36 +61,25 @@ ServoMotor::ServoMotor(uint8_t axisNumber, int8_t reverse,
     case 8: callback = moveServoMotorAxis8; break;
     case 9: callback = moveServoMotorAxis9; break;
   }
+
+  // get the feedback control loop ready
+  feedback->init(axisNumber, control, driver->getMotorControlRange());
 }
 
 bool ServoMotor::init() {
-  if (!Motor::init()) return false;
+  if (axisNumber < 1 || axisNumber > 9) return false;
 
-  #ifdef CALIBRATE_SERVO_DC
-    calibrateVelocity = new ServoCalibrateTrackingVelocity(axisNumber);
-    driver->setTrackingMode(true);
-    driver->setBypassAccelOnTracking(true);
-    slewing = false;
-  #endif
+  driver->init();
+  enable(false);
 
-  if (!encoder->init()) { DF("ERR:"); D(axisPrefix); DLF("no encoder!"); return false; }
-
-  encoder->setOrigin(encoderOrigin);
-
-  if (!driver->init(normalizedReverse)) { DF("ERR:"); D(axisPrefix); DLF("no motor driver!"); return false; }
-
-  driver->enable(false);
-
-  // get the feedback control loop ready
-  feedback->init(axisNumber, control);
-  feedback->reset();
 
   trackingFrequency = (AXIS1_STEPS_PER_DEGREE/240.0F)*SIDEREAL_RATIO_F;
 
   // start the motion timer
-  VF("MSG:"); V(axisPrefix); VF("start task to synthesize motion... ");
-  char timerName[] = "Ax_Svo";
-  timerName[2] = '0' + axisNumber;
+  V(axisPrefix);
+  VF("start task to track motion... ");
+  char timerName[] = "Servo_";
+  timerName[5] = '0' + axisNumber;
   taskHandle = tasks.add(0, 0, true, 0, callback, timerName);
   if (taskHandle) {
     VF("success");
@@ -98,7 +87,7 @@ bool ServoMotor::init() {
       if (!tasks.requestHardwareTimer(taskHandle, 0)) {
         VF(" (no hardware timer!)");
       } else {
-        maxFrequency = (1000000.0F/HAL_MAXRATE_LOWER_LIMIT)/2.0F;
+        maxFrequency = 1000000.0F/HAL_MAXRATE_LOWER_LIMIT;
       };
     }
     VLF("");
@@ -107,55 +96,50 @@ bool ServoMotor::init() {
     return false;
   }
 
-  ready = true;
   return true;
 }
 
+// set driver reverse state
 void ServoMotor::setReverse(int8_t state) {
-  if (!ready) return;
-
   feedback->setControlDirection(state);
-  if (state == ON) encoderReverse = encoderReverseDefault; else encoderReverse = !encoderReverseDefault;
+  if (state == ON) encoderReverse = encoderReverseDefault; else encoderReverse = !encoderReverseDefault; 
 }
 
+// set driver parameters
+void ServoMotor::setParameters(float param1, float param2, float param3, float param4, float param5, float param6) {
+  feedback->setParameters(param1, param2, param3, param4, param5, param6);
+}
+
+// validate driver parameters
+bool ServoMotor::validateParameters(float param1, float param2, float param3, float param4, float param5, float param6) {
+  return feedback->validateParameters(param1, param2, param3, param4, param5, param6);
+}
+
+// sets motor enable on/off (if possible)
 void ServoMotor::enable(bool state) {
-  if (!ready) return;
-
   driver->enable(state);
-  if (state == false) feedback->reset(); else safetyShutdown = false;
   enabled = state;
-
-  #ifdef CALIBRATE_SERVO_DC
-    if (enabled && !encoder->isVirtual) calibrateVelocity->start(trackingFrequency, getInstrumentCoordinateSteps());
-  #endif
 }
 
+// get the associated driver status
 DriverStatus ServoMotor::getDriverStatus() {
-  if (!ready) return errorStatus;
-
-  DriverStatus driverStatus;
-  if (ready) { driver->updateStatus(); driverStatus = driver->getStatus(); } else driverStatus.fault = true;
-  if (encoder->errorThresholdExceeded()) driverStatus.fault = true;
-  if (safetyShutdown) driverStatus.fault = true;
-  return driverStatus;
+  driver->updateStatus();
+  return driver->getStatus();
 }
 
 // resets motor and target angular position in steps, also zeros backlash and index
 void ServoMotor::resetPositionSteps(long value) {
-  if (!ready) return;
-
   Motor::resetPositionSteps(value);
   if (syncThreshold == OFF) {
     encoder->write(value);
   } else {
-    VF("MSG:"); V(axisPrefix); VL("absolute encoder ignored reset position");
+    V(axisPrefix);
+    VL("absolute encoder ignored reset position");
   }
 }
 
 // get instrument coordinate, in steps
 long ServoMotor::getInstrumentCoordinateSteps() {
-  if (!ready) return 0;
-
   return encoderRead() + indexSteps;
 }
 
@@ -175,15 +159,13 @@ void ServoMotor::setInstrumentCoordinateSteps(long value) {
     if (abs(originIndexSteps - i) < syncThreshold) {
       indexSteps = i;
     } else {
-      VF("MSG:"); V(axisPrefix); VL("absolute encoder ignored sync exceeds threshold");
+      V(axisPrefix); VL("absolute encoder ignored sync exceeds threshold");
     }
   }
 }
 
 // distance to target in steps (+/-)
 long ServoMotor::getTargetDistanceSteps() {
-  if (!ready) return 0;
-
   long encoderCounts = encoderRead();
   noInterrupts();
   long dist = targetSteps - encoderCounts;
@@ -193,8 +175,6 @@ long ServoMotor::getTargetDistanceSteps() {
 
 // set frequency (+/-) in steps per second negative frequencies move reverse in direction (0 stops motion)
 void ServoMotor::setFrequencySteps(float frequency) {
-  if (!ready) return;
-
   // negative frequency, convert to positive and reverse the direction
   int dir = 0;
   if (frequency > 0.0F) dir = 1; else if (frequency < 0.0F) { frequency = -frequency; dir = -1; }
@@ -227,7 +207,11 @@ void ServoMotor::setFrequencySteps(float frequency) {
     }
 
     currentFrequency = frequency;
-    currentDirection = dir;
+    if (encoderReverse) {
+      velocityEstimate = driver->getVelocityEstimate(currentFrequency*dir);
+    } else {
+      velocityEstimate = -driver->getVelocityEstimate(currentFrequency*dir);
+    }
 
     // change the motor rate/direction
     noInterrupts();
@@ -243,45 +227,24 @@ void ServoMotor::setFrequencySteps(float frequency) {
 }
 
 float ServoMotor::getFrequencySteps() {
-  if (!ready) return 0;
-
   if (lastPeriod == 0) return 0;
   return (16000000.0F / lastPeriod) * absStep;
 }
 
 // set slewing state (hint that we are about to slew or are done slewing)
 void ServoMotor::setSlewing(bool state) {
-  if (!ready) return;
-
   slewing = state;
-}
-
-// set zero/origin of absolute encoders
-uint32_t ServoMotor::encoderZero() {
-  if (!ready) return 0;
-
-  encoder->origin = 0;
-  encoder->index = 0;
-
-  uint32_t zero = (uint32_t)(-encoder->read());
-  encoder->origin = zero;
-
-  return zero;
-}
-
-int32_t ServoMotor::encoderRead() {
-  int32_t encoderCounts = encoder->read();
-  if (encoderReverse) encoderCounts = -encoderCounts;
-  return encoderCounts;
 }
 
 // updates PID and sets servo motor power/direction
 void ServoMotor::poll() {
   long encoderCounts = encoderRead();
 
+  long encoderCountsOrig = encoderCounts;
+
   // for absolute encoders initialize the motor position at startup
   if (syncThreshold != OFF) {
-    if (!motorStepsInitDone && homeSet) {
+    if (!motorStepsInitDone && encoder->ready && homeSet) {
       noInterrupts();
       motorSteps = encoderCounts;
       targetSteps = encoderCounts;
@@ -305,91 +268,74 @@ void ServoMotor::poll() {
 
   control->set = motorCounts;
   control->in = encoderCounts;
-  float velocity;
-  if (enabled) {
-    // directly use fixed PWM value during calibration
-    #ifdef CALIBRATE_SERVO_DC
-      if (calibrateVelocity->experimentMode) {
-        // Get unfiltered counts
-        calibrateVelocity->updateState(unfilteredEncoderCounts);
-        // experimentVel is in PERCENT of max velocity, convert to cps
-        velocity = (calibrateVelocity->experimentVelocity / 100.0F) * velocityMax;
-        // disable the PID                        // or feedback->zeroOutputs()
-        control->out = 0.0f;                      // ensure PID output doesn't leak in
-      } else {
-        // your normal control path; keep whatever you used before
-        velocity = control->out + currentDirection*currentFrequency;
-      }
-    #else
-      feedback->poll();
-      velocity = control->out + currentDirection*currentFrequency;
-    #endif
+  if (enabled) feedback->poll();
 
-  } else velocity = 0.0F;
+  float velocity = velocityEstimate + control->out;
+  if (!enabled) velocity = 0.0F;
 
   // for virtual encoders set the velocity and direction
   if (encoder->isVirtual) {
     encoder->setVelocity(abs(velocity));
-    volatile int8_t dir = velocity < 0.0F ? 1 : -1;
+    volatile int8_t dir = -1;
+    if (velocity < 0.0F) dir = 1;
     encoder->setDirection(&dir);
   }
 
-  velocityPercent = (driver->setMotorVelocity(velocity)/velocityMax) * 100.0F;
+  delta = motorCounts - encoderCounts;
+  velocityPercent = (driver->setMotorVelocity(velocity)/driver->getMotorControlRange()) * 100.0F;
   if (driver->getMotorDirection() == DIR_FORWARD) control->directionHint = 1; else control->directionHint = -1;
 
-  if (feedback->manuallySwitchParameters) {
+  if (feedback->useVariableParameters) {
+    feedback->variableParameters(fabs(velocityPercent));
+  } else {
     if (!slewing && enabled) {
       if ((long)(millis() - lastSlewingTime) > SERVO_SLEWING_TO_TRACKING_DELAY) feedback->selectTrackingParameters(); else feedback->selectSlewingParameters();
     } else {
       lastSlewingTime = millis();
       feedback->selectSlewingParameters();
-    }
-  } else {
-    feedback->variableParameters(fabs(velocityPercent));
+    } 
+  }
+
+  // if the driver has shutdown itself we should also shutdown
+  if (driver->getStatus().fault && enabled) {
+    D(axisPrefixWarn);
+    DL("fault detected, shutting down axis!");
+    enable(false);
   }
 
   if (velocityPercent < -33) wasBelow33 = true;
   if (velocityPercent > 33) wasAbove33 = true;
 
-  if (millis() - lastCheckTime > 1000) {
-    delta = motorCounts - encoderCounts;
+  if (millis() - lastCheckTime > 2000) {
 
     #ifndef SERVO_SAFETY_DISABLE
-      // if above SERVO_SAFETY_STALL_POWER (33% default) and we're not moving something is seriously wrong, so shut it down
-      if (labs(encoderCounts - lastEncoderCounts) < 10 && abs(velocityPercent) >= SERVO_SAFETY_STALL_POWER) {
-        DF("WRN:"); D(axisPrefix); DF("stall detected!");
-        DF(" control->in = "); D(control->in); DF(", control->set = "); D(control->set);
-        DF(", control->out = "); D(control->out); DF(", velocity % = "); DL(velocityPercent);
+      // if above 33% power and we're not moving something is seriously wrong, so shut it down
+      if (labs(encoderCounts - lastEncoderCounts) < 10 && abs(velocityPercent) >= 33) {
+        D(axisPrefixWarn);
+        D("stall detected!"); D(" control->in = "); D(control->in); D(", control->set = "); D(control->set);
+        D(", control->out = "); D(control->out); D(", velocity % = "); DL(velocityPercent);
         enable(false);
-        safetyShutdown = true;
       }
 
-      // if above 90% power for > three seconds and the distance to the target is increasing
-      // something is seriously wrong so shut it down
-      if (labs(delta - lastDelta) > lastTargetDistance && abs(velocityPercent) >= 90) {
-        movingAwaySeconds++;
-        if (movingAwaySeconds >= 3) {
-          DF("WRN:"); D(axisPrefix); DF("runaway detected!");
-          DLF(" > 90% power while moving away from the target!");
-          enable(false);
-          safetyShutdown = true;
-        }
-      } else movingAwaySeconds = 0;
-      lastTargetDistance = labs(delta - lastDelta);
+      // if above 90% power and we're moving away from the target something is seriously wrong, so shut it down
+      if (labs(encoderCounts - lastEncoderCounts) > lastTargetDistance && abs(velocityPercent) >= 90) {
+        D(axisPrefixWarn);
+        DL("runaway detected, > 90% power while moving away from the target!");
+        enable(false);
+      }
+      lastTargetDistance = labs(encoderCounts - lastEncoderCounts);
 
       // if we were below -33% and above 33% power in a one second period something is seriously wrong, so shut it down
       if (wasBelow33 && wasAbove33) {
-        DF("WRN:"); D(axisPrefix); DF("oscillation detected!");
-        DLF(" below -33% and above 33% power in a 2 second period!");
+        D(axisPrefixWarn);
+        DL("oscillation detected, below -33% and above 33% power in a 2 second period!");
         enable(false);
-        safetyShutdown = true;
       }
     #endif
 
     wasAbove33 = false;
     wasBelow33 = false;
     lastEncoderCounts = encoderCounts;
-    lastDelta = delta;
     lastCheckTime = millis();
   }
 
@@ -403,17 +349,17 @@ void ServoMotor::poll() {
         float spas = 0;
         if (axisNumber == 1) spas = AXIS1_STEPS_PER_DEGREE/3600.0F; else if (axisNumber == 2) spas = AXIS2_STEPS_PER_DEGREE/3600.0F;
 
-//      sprintf(s, "Ax%dSvo: Delta %6ld, Motor %6ld, Encoder %6ld, Ax%dSvo_Power: %6.3f%%\r\n", (int)axisNumber, (motorCounts - encoderCounts), motorCounts, (long)encoderCounts, (int)axisNumber, velocityPercent);
-//      sprintf(s, "Ax%dSvo: Motor %6ld, Encoder %6ld\r\n", (int)axisNumber, motorCounts, (long)encoderCounts);
-//      sprintf(s, "Ax%dSvo: Delta %0.2f\r\n", (int)axisNumber, (motorCounts - (long)encoderCounts)/12.9425);
-//      sprintf(s, "Ax%dSvo: DeltaASf: %0.2f, DeltaAS: %0.2f, Ax%dSvo_Power: %6.3f%%\r\n", (int)axisNumber, (motorCounts - encoderCounts)/spas, (motorCounts - unfilteredEncoderCounts)/spas, (int)axisNumber, velocityPercent);
-        sprintf(s, "%0.2f, %6.3f%%\r\n", (motorCounts - unfilteredEncoderCounts)/spas, velocityPercent);
+//      sprintf(s, "Servo%d_Delta: %6ld, Motor %6ld, Encoder %6ld, Servo%d_Power: %6.3f%%\r\n", (int)axisNumber, (motorCounts - encoderCounts), motorCounts, (long)encoderCounts, (int)axisNumber, velocityPercent);
+//      sprintf(s, "Servo%d: Motor %6ld, Encoder %6ld\r\n", (int)axisNumber, motorCounts, (long)encoderCounts);
+      sprintf(s, "Servo%d: DeltaASf: %0.2f, DeltaAS: %0.2f, Servo%d_Power: %6.3f%%\r\n", (int)axisNumber, (motorCounts - encoderCounts)/spas, (motorCounts - unfilteredEncoderCounts)/spas, (int)axisNumber, velocityPercent);
 
         D(s);
         UNUSED(spas);
       }
     }
   #endif
+
+  UNUSED(encoderCountsOrig);
 }
 
 // sets dir as required and moves coord toward target at setFrequencySteps() rate
@@ -454,6 +400,25 @@ IRAM_ATTR void ServoMotor::move() {
     }
 
   #endif
+}
+
+int32_t ServoMotor::encoderRead() {
+  int32_t encoderCounts = encoder->read();
+
+
+  if (encoderReverse) encoderCounts = -encoderCounts;
+  return encoderCounts;
+}
+
+// set zero/origin of absolute encoders
+uint32_t ServoMotor::encoderZero() {
+  encoder->origin = 0;
+  encoder->offset = 0;
+
+  uint32_t zero = (uint32_t)(-encoder->read());
+  encoder->origin = zero;
+
+  return zero;
 }
 
 #endif

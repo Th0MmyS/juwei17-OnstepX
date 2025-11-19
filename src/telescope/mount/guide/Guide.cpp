@@ -5,10 +5,8 @@
 
 #ifdef MOUNT_PRESENT
 
-#include "../../../lib/tasks/OnTask.h"
-#include "../../../lib/nv/Nv.h"
-
 #include "../../../libApp/commands/ProcessCmds.h"
+#include "../../../lib/tasks/OnTask.h"
 
 #include "../../Telescope.h"
 #include "../Mount.h"
@@ -286,14 +284,14 @@ bool Guide::validAxis1(GuideAction guideAction) {
     if (transform.mountType == GEM && location.pierSide == PIER_SIDE_EAST) {
       if (location.h < -limits.settings.pastMeridianE) return false;
     }
-    if (location.a1 < axis1.getLimitMin()) return false;
+    if (location.a1 < axis1.settings.limits.min) return false;
   }
 
   if (guideAction == GA_FORWARD || guideAction == GA_SPIRAL) {
     if (transform.mountType == GEM && location.pierSide == PIER_SIDE_WEST) {
       if (location.h > limits.settings.pastMeridianW) return false;
     }
-    if (location.a1 > axis1.getLimitMax()) return false;
+    if (location.a1 > axis1.settings.limits.max) return false;
   }
   return true;
 }
@@ -311,17 +309,17 @@ bool Guide::validAxis2(GuideAction guideAction) {
 
   if (guideAction == GA_REVERSE || guideAction == GA_SPIRAL) {
     if (pierSide == PIER_SIDE_WEST) {
-      if (fgt(location.a2, axis2.getLimitMax())) return false;
+      if (fgt(location.a2, axis2.settings.limits.max)) return false;
     } else {
-      if (flt(location.a2, axis2.getLimitMin())) return false;
+      if (flt(location.a2, axis2.settings.limits.min)) return false;
     }
   }
 
   if (guideAction == GA_FORWARD || guideAction == GA_SPIRAL) {
     if (pierSide == PIER_SIDE_WEST) {
-      if (flt(location.a2, axis2.getLimitMin())) return false;
+      if (flt(location.a2, axis2.settings.limits.min)) return false;
     } else {
-      if (fgt(location.a2, axis2.getLimitMax())) return false;
+      if (fgt(location.a2, axis2.settings.limits.max)) return false;
     }
   }
   if (guideAction == GA_SPIRAL) {

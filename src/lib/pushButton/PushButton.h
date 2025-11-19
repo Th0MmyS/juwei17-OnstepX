@@ -2,7 +2,7 @@
 // Handle push buttons
 #pragma once
 
-#include "../../Common.h"
+#include <Arduino.h>
 
 // threshold in milliseconds (for tone detection, 40ms/7 = +/-17.5%)
 #define TONE_FREQ_THRESHOLD 7.0
@@ -53,13 +53,12 @@ class Button {
     int pin;
     int state = HIGH;
     int lastStableState = HIGH;
-    int analogCompareValue;
+    int threshold;
     int hysteresis;
     unsigned long debounceMs = 0;
     unsigned long stableStartMs = 0;
     unsigned long stableMs = 0;
-    bool isAnalogThreshold = false;
-    bool isAnalogValue = false;
+    bool isAnalog = false;
     bool pressed = false;
     bool doublePressed = false;
     double avgPulseDuration = 2000.0;

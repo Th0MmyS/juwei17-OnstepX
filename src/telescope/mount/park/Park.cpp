@@ -130,8 +130,7 @@ CommandError Park::request() {
     parkTarget.h = settings.position.h;
     parkTarget.d = settings.position.d;
     parkTarget.pierSide = settings.position.pierSide;
-    if (transform.mountType == ALTAZM) transform.equToHor(&parkTarget); else
-    if (transform.mountType == ALTALT) transform.equToAa(&parkTarget);
+    if (transform.mountType == ALTAZM) transform.equToHor(&parkTarget);
 
     // goto the park (mount) target coordinate
     VLF("MSG: Mount, parking");
@@ -255,8 +254,7 @@ CommandError Park::restore(bool withTrackingOn) {
 
     // set the mount target
     double a1, a2;
-    if (transform.mountType == ALTAZM) transform.equToHor(&parkTarget); else
-    if (transform.mountType == ALTALT) transform.equToAa(&parkTarget);
+    if (transform.mountType == ALTAZM) transform.equToHor(&parkTarget);
 
     transform.mountToInstrument(&parkTarget, &a1, &a2);
     axis1.setInstrumentCoordinatePark(a1);

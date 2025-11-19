@@ -117,10 +117,8 @@ bool Focuser::command(char *reply, char *command, char *parameter, bool *supress
     // :FT#       Get status
     //            Returns: s#
     if (command[1] == 'T') {
-      if (axes[index]->isSlewing()) strcpy(reply,"M"); else strcpy(reply,"S"); // [M] for moving or [S] for stopped
-      char temp[2] = "0";
-      temp[0] = '0' + getGotoRate(index);
-      strcat(reply, temp); // [1] to [5] for 0.5x to 2x goto rate
+      if (axes[index]->isSlewing()) strcpy(reply,"M"); else strcpy(reply,"S");     // [M] for moving or [S] for stopped
+      char temp[2] = "0"; temp[0] = '0' + getGotoRate(index); strcat(reply, temp); // [1] to [5] for 0.5x to 2x goto rate
       *numericReply = false;
     } else
 
@@ -134,14 +132,14 @@ bool Focuser::command(char *reply, char *command, char *parameter, bool *supress
     // :FI#       Get full in position (in microns or steps)
     //            Returns: n#
     if (toupper(command[1]) == 'I') {
-      sprintf(reply,"%ld",(long)round(axes[index]->getLimitMin()*MicronsToUnits));
+      sprintf(reply,"%ld",(long)round(axes[index]->settings.limits.min*MicronsToUnits));
       *numericReply = false;
     } else
 
     // :FM#       Get max position (in microns or steps)
     //            Returns: n#
     if (toupper(command[1]) == 'M') {
-      sprintf(reply,"%ld",(long)round(axes[index]->getLimitMax()*MicronsToUnits));
+      sprintf(reply,"%ld",(long)round(axes[index]->settings.limits.max*MicronsToUnits));
       *numericReply = false;
     } else
 
@@ -306,24 +304,36 @@ bool Focuser::command(char *reply, char *command, char *parameter, bool *supress
     // :FZ#       Set focuser position as zero
     //            Returns: Nothing
     if (command[1] == 'Z') {
-      *commandError = resetTarget(index, 0);
+      settings[index].parkState = PS_UNPARKED;
+      *commandError = axes[index]->resetPositionSteps(0);
+      axes[index]->setBacklash(getBacklash(index));
       *numericReply = false;
     } else
 
-    // :FH#       Set focuser position as home
+    // :FH#       Set focuser position as half-travel
     //            Returns: Nothing
     if (command[1] == 'H') {
-      *commandError = resetTarget(index, (long)round(getHomePosition(index)*MicronsToSteps));
+      settings[index].parkState = PS_UNPARKED;
+      long p = round((axes[index]->settings.limits.max + axes[index]->settings.limits.min)/2.0F)*MicronsToSteps;
+      *commandError = axes[index]->resetPositionSteps(p);
+      axes[index]->setBacklash(getBacklash(index));
       *numericReply = false;
     } else
 
-    // :Fh#       Move focuser target position to home
+    // :Fh#       Move focuser target position to half-travel
     //            Returns: Nothing
     if (command[1] == 'h') {
       if (axes[index]->hasHomeSense()) {
-        *commandError = moveHome(index);
+        if (settings[index].parkState == PS_UNPARKED) {
+          axes[index]->setFrequencySlew(settings[index].gotoRate);
+          *commandError = axes[index]->autoSlewHome();
+          if (*commandError == CE_NONE) {
+            homing[index] = true;
+          }
+        } else *commandError = CE_PARKED;
       } else {
-        *commandError = gotoTarget(index, (long)round(getHomePosition(index)*MicronsToSteps));
+        long t = round((axes[index]->settings.limits.max + axes[index]->settings.limits.min)/2.0F)*MicronsToSteps;
+        *commandError = gotoTarget(index, t);
       }
       *numericReply = false;
     } else *commandError = CE_CMD_UNKNOWN;

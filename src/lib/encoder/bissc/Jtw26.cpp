@@ -5,17 +5,17 @@
 #ifdef HAS_JTW_26BIT
 
 // initialize BiSS-C encoder
-Jtw26::Jtw26(int16_t axis, int16_t maPin, int16_t sloPin) {
+// nvAddress holds settings for the 9 supported axes, 9*4 = 72 bytes; set nvAddress 0 to disable
+Jtw26::Jtw26(int16_t maPin, int16_t sloPin, int16_t axis) {
   if (axis < 1 || axis > 9) return;
-
-  this->axis = axis;
 
   this->maPin = maPin;
   this->sloPin = sloPin;
+  this->axis = axis;
 }
 
-// get encoder count relative to origin
-IRAM_ATTR bool Jtw26::getCount(uint32_t &count) {
+// read encoder count
+IRAM_ATTR bool Jtw26::readEnc(uint32_t &position) {
 
   bool foundAck = false;
   bool foundStart = false;
@@ -25,8 +25,10 @@ IRAM_ATTR bool Jtw26::getCount(uint32_t &count) {
   uint8_t  encWrn = 0;
   uint8_t  encCrc = 0;
 
+  uint32_t encTurns = 0;
+
   // prepare for a reading
-  count = 0;
+  position = 0;
 
   // bit delay in nanoseconds
   int rate = lround(500000.0/BISSC_CLOCK_RATE_KHZ);
@@ -34,7 +36,7 @@ IRAM_ATTR bool Jtw26::getCount(uint32_t &count) {
   #ifdef ESP32
     portMUX_TYPE bisscMutex = portMUX_INITIALIZER_UNLOCKED;
     taskENTER_CRITICAL(&bisscMutex);
-  #else
+  #elif defined(__TEENSYDUINO__)
     noInterrupts();
   #endif
 
@@ -73,7 +75,7 @@ IRAM_ATTR bool Jtw26::getCount(uint32_t &count) {
         // the first 26 bits are the encoder absolute count
         for (int i = 0; i < 26; i++) {
           digitalWriteF(maPin, LOW_MA);
-          if (digitalReadF(sloPin) == HIGH_SLO) bitSet(count, 25 - i);
+          if (digitalReadF(sloPin) == HIGH_SLO) bitSet(position, 25 - i);
           delayNanoseconds(rate);
           digitalWriteF(maPin, HIGH_MA);
           delayNanoseconds(rate);
@@ -112,7 +114,7 @@ IRAM_ATTR bool Jtw26::getCount(uint32_t &count) {
 
   #ifdef ESP32
     taskEXIT_CRITICAL(&bisscMutex);
-  #else
+  #elif defined(__TEENSYDUINO__)
     interrupts();
   #endif
 
@@ -120,43 +122,39 @@ IRAM_ATTR bool Jtw26::getCount(uint32_t &count) {
   int16_t errors = 0;
   UNUSED(encWrn);
 
-  uint64_t encData = (uint64_t)count;
+  uint64_t encData = (uint64_t)position;
   encData = (encData << 1) | encErr;
   encData = (encData << 1) | encWrn;
 
-  if (!encWrn)     { DF("WRN: Encoder JTW_26BIT"); D(axis); DLF(", Warn bit set"); warn++; }
+  if (!foundAck)   { VF("WRN: Encoder JTW_26BIT"); V(axis); VLF(", Ack bit invalid"); errors++; } else
+  if (!foundStart) { VF("WRN: Encoder JTW_26BIT"); V(axis); VLF(", Start bit invalid"); errors++; } else
+  if (!foundCds)   { VF("WRN: Encoder JTW_26BIT"); V(axis); VLF(", Cds bit invalid"); errors++; } else
+  if (!encErr)     { VF("WRN: Encoder JTW_26BIT"); V(axis); VLF(", Error bit set"); errors++; } else
+  if (!encWrn)     { VF("WRN: Encoder JTW_26BIT"); V(axis); VLF(", Warn bit set"); } else errors = 0;
+  if (errors > 0) return false;
 
-  if (!foundAck)   { DF("WRN: Encoder JTW_26BIT"); D(axis); DLF(", Ack bit invalid"); errors++; } else
-  if (!foundStart) { DF("WRN: Encoder JTW_26BIT"); D(axis); DLF(", Start bit invalid"); errors++; } else
-  if (!foundCds)   { DF("WRN: Encoder JTW_26BIT"); D(axis); DLF(", Cds bit invalid"); errors++; } else
-  if (!encErr)     { DF("WRN: Encoder JTW_26BIT"); D(axis); DLF(", Error bit set"); errors++; } else
   if (crc6(encData) != encCrc) {
-    DF("WRN: Encoder JTW_26BIT"); D(axis); DF(", Crc failed ("); D(((float)(++bad)/good)*100.0F); DLF("%)"); 
-    errors++;
+    bad++;
+    VF("WRN: Encoder JTW_26BIT"); V(axis); VF(", Crc failed ("); V(((float)bad/good)*100.0F); VLF("%)"); 
+    return false;
   } else good++;
 
-  if (errors > 0) {
-    error++;
-    return false;
-  }
-
-  // extend negative to 32 bits
-  if (bitRead(count, 26)) { count |= 0b11111100000000000000000000000000; }
-
-  #ifdef JTW_26BIT_AS_24BIT
-    count += origin*4L;
+  #if BISSC_SINGLE_TURN == ON
+    // extend negative to 32 bits
+    if (bitRead(position, 26)) { position |= 0b11111100000000000000000000000000; }
   #else
-    count += origin;
+    // combine absolute and 8 low order bits of multi-turn count for a 32 bit count
+    position = position | ((encTurns & 0b0000111111) << 26);
   #endif
 
-  if ((int32_t)count >= 67108864) count -= 67108864;
-  if ((int32_t)count < 0) count += 67108864;
+  position += origin;
 
-  count -= 33554432;
-
-  #ifdef JTW_26BIT_AS_24BIT
-    count = (int32_t)count/4L;
+  #if BISSC_SINGLE_TURN == ON
+    if ((int32_t)position > 67108864) position -= 67108864;
+    if ((int32_t)position < 0) position += 67108864;
   #endif
+
+  position -= 33554432;
 
   return true;
 }

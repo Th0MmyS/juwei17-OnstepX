@@ -9,8 +9,10 @@
 #include <TimeLib.h> // https://github.com/PaulStoffregen/Time/archive/master.zip
 
 #if OPERATIONAL_MODE == WIFI
+  #include <WiFiUdp.h>
   WiFiUDP Udp;
 #else
+  #include <EthernetUdp.h>
   EthernetUDP Udp;
 #endif
 

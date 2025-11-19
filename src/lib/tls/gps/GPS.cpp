@@ -30,7 +30,7 @@
 #include "../PPS.h"
 #include "../../tasks/OnTask.h"
 
-#include <TinyGPSPlus.h> // https://github.com/mikalhart/TinyGPSPlus/releases
+#include <TinyGPS++.h> // http://arduiniana.org/libraries/tinygpsplus/
 TinyGPSPlus gps;
 
 // provide for using software serial
@@ -79,14 +79,14 @@ bool TlsGPS::init() {
   // check to see if the GPS is present
   tasks.yield(1000);
   if (!SERIAL_GPS.available()) {
-    DLF("WRN: TLS, GPS serial RX interface is quiet!");
+    VLF("WRN: TLS, GPS serial RX interface is quiet!");
     return false;
   } else {
     unsigned long timeout = millis() + 1000UL;
     while (SERIAL_GPS.available() > 0) {
       if (gps.encode(SERIAL_GPS.read())) break;
       if ((long)(millis() - timeout) > 0) {
-        DLF("WRN: TLS, GPS serial RX interface no NMEA sentences detected!");
+        VLF("WRN: TLS, GPS serial RX interface no NMEA sentences detected!");
         return false;
       }
       Y;

@@ -6,8 +6,6 @@
 
 #if defined(MOUNT_PRESENT)
 
-#include "../../../lib/nv/Nv.h"
-
 #include "../../Telescope.h"
 #include "../coordinates/Transform.h"
 

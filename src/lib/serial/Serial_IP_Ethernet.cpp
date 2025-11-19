@@ -3,7 +3,11 @@
 
 #include "Serial_IP_Ethernet.h"
 
-#if OPERATIONAL_MODE >= ETHERNET_FIRST && OPERATIONAL_MODE <= ETHERNET_LAST && SERIAL_SERVER != OFF
+#if (OPERATIONAL_MODE == ETHERNET_W5100 || OPERATIONAL_MODE == ETHERNET_W5500) && \
+    SERIAL_SERVER != OFF
+
+  bool port9999Assigned = false;
+  bool port9998Assigned = false;
 
   void IPSerial::begin(long port, unsigned long clientTimeoutMs, bool persist) {
     if (active) return;
@@ -13,25 +17,21 @@
     if ((port < 9000 || port >= 10000 || port == 9600) && clientTimeoutMs == 2000 && persist == false) port = 9999;
 
     this->port = port;
-    this->clientTimeoutMs = clientTimeoutMs;
-    this->persist = persist;
 
-    if (!ethernetManager.init()) {
-      DLF("WRN: IPSerial, failed to start Ethernet");
-      return;
-    }
+    ethernetManager.init();
 
     cmdSvr = new EthernetServer(port);
     cmdSvr->begin();
-    VF("MSG: IPSerial, started EthernetServer on port "); VL(port);
+    VF("MSG: Ethernet, started IP commandServer on port "); VL(port);
 
+    this->clientTimeoutMs = clientTimeoutMs;
+    this->persist = persist;
     active = true;
 
     delay(1000);
   }
 
   void IPSerial::restart() {
-    VLF("IPSerial, restarted EthernetServer");
     cmdSvr->begin();
   }
 
@@ -42,11 +42,6 @@
       #endif
       cmdSvrClient.stop();
     }
-  }
-
-  void IPSerial::flush(void) {
-    if (!ethernetManager.active || !cmdSvrClient) return;
-    cmdSvrClient.flush();
   }
 
   int IPSerial::available(void) {
@@ -90,6 +85,11 @@
   int IPSerial::peek(void) {
     if (!ethernetManager.active || !cmdSvrClient) return -1;
     return cmdSvrClient.peek();
+  }
+
+  void IPSerial::flush(void) {
+    if (!ethernetManager.active || !cmdSvrClient) return;
+    cmdSvrClient.flush();
   }
 
   int IPSerial::read(void) {

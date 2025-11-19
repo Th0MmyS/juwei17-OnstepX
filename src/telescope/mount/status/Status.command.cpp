@@ -5,11 +5,9 @@
 
 #if defined(MOUNT_PRESENT)
 
-#include "../../../lib/nv/Nv.h"
-#include "../../../lib/tls/PPS.h"
-
 #include "../Mount.h"
 #include "../coordinates/Transform.h"
+#include "../../../lib/tls/PPS.h"
 #include "../goto/Goto.h"
 #include "../guide/Guide.h"
 #include "../home/Home.h"
@@ -76,8 +74,7 @@ bool Status::command(char *reply, char *command, char *parameter, bool *supressF
       #endif
       if (transform.mountType == GEM)          reply[i++]='E'; else                // GEM
       if (transform.mountType == FORK)         reply[i++]='K'; else                // FORK
-      if (transform.mountType == ALTAZM)       reply[i++]='A'; else                // ALTAZM
-      if (transform.mountType == ALTALT)       reply[i++]='L';                     // ALTALT
+      if (transform.mountType == ALTAZM)       reply[i++]='A';                     // ALTAZM
 
       Coordinate current = mount.getMountPosition(CR_MOUNT);
       if (guide.state == GU_HOME_GUIDE || guide.state == GU_HOME_GUIDE_ABORT) current.pierSide = PIER_SIDE_NONE;
@@ -128,8 +125,7 @@ bool Status::command(char *reply, char *command, char *parameter, bool *supressF
 
       if (transform.mountType == GEM)              reply[3]|=0b10000001; else      // GEM
       if (transform.mountType == FORK)             reply[3]|=0b10000010; else      // FORK
-      if (transform.mountType == ALTAZM)           reply[3]|=0b10001000; else      // ALTAZM
-      if (transform.mountType == ALTALT)           reply[3]|=0b10000100;           // ALTALT
+      if (transform.mountType == ALTAZM)           reply[3]|=0b10001000;           // ALTAZM
 
       Coordinate current = mount.getMountPosition(CR_MOUNT);
       if (guide.state == GU_HOME_GUIDE || guide.state == GU_HOME_GUIDE_ABORT) current.pierSide = PIER_SIDE_NONE;
@@ -156,8 +152,7 @@ bool Status::command(char *reply, char *command, char *parameter, bool *supressF
       int i = 0;
       if (transform.mountType == GEM)          reply[i++] = 'G'; else
       if (transform.mountType == FORK)         reply[i++] = 'P'; else
-      if (transform.mountType == ALTAZM)       reply[i++] = 'A'; else
-      if (transform.mountType == ALTALT)       reply[i++] = 'L';
+      if (transform.mountType == ALTAZM)       reply[i++] = 'A';
       if (mount.isTracking())                  reply[i++] = 'T'; else reply[i++] = 'N';
       if (park.state == PS_PARKED)             reply[i++] = 'P'; else
       if (mount.isHome())                      reply[i++] = 'H'; else

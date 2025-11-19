@@ -82,7 +82,7 @@ class Mount {
     void enable(bool state);
 
     // returns true if the mount motors are powered on
-    inline bool isEnabled() { return axis1.isEnabled() && axis2.isEnabled(); }
+    inline bool isEnabled() { return axis1.isEnabled() || axis2.isEnabled(); }
 
     // true if syncing only from OnStep to the Encoders
     bool syncFromOnStepToEncoders = false;
@@ -93,12 +93,11 @@ class Mount {
 
     void poll();
 
-    // all in sidereal units 1x = 15 arc-seconds/sidereal second
-    float trackingRate = hzToSidereal(TRACKING_RATE_DEFAULT_HZ);
-    float trackingRateAxis1 = 0.0F;
-    float trackingRateAxis2 = 0.0F;
-    float trackingRateOffsetRA = 0.0F;
-    float trackingRateOffsetDec = 0.0F;
+    float trackingRate = 1.0F;            // in sidereal units 1x = 15 arc-seconds/sidereal second
+    float trackingRateAxis1 = 0.0F;       // in sidereal units 1x = 15 arc-seconds/sidereal second
+    float trackingRateAxis2 = 0.0F;       // in sidereal units 1x = 15 arc-seconds/sidereal second
+    float trackingRateOffsetRA = 0.0F;    // in sidereal units 1x = 15 arc-seconds/sidereal second
+    float trackingRateOffsetDec = 0.0F;   // in sidereal units 1x = 15 arc-seconds/sidereal second
 
     MountSettings settings = {RC_DEFAULT, { 0, 0 }};
 
@@ -123,8 +122,6 @@ class Mount {
   extern ServoMotor motor1;
 #elif defined(AXIS1_ODRIVE_PRESENT)
   extern ODriveMotor motor1;
-#elif defined(AXIS1_KTECH_PRESENT)
-  extern KTechMotor motor1;
 #endif
 extern Axis axis1;
 
@@ -134,8 +131,6 @@ extern Axis axis1;
   extern ServoMotor motor2;
 #elif defined(AXIS2_ODRIVE_PRESENT)
   extern ODriveMotor motor2;
-#elif defined(AXIS2_KTECH_PRESENT)
-  extern KTechMotor motor2;
 #endif
 extern Axis axis2;
 
