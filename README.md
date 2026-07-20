@@ -32,6 +32,14 @@ Specifies the stepper motor driver model. Common options include TMC2209, TMC516
 Critical calibration value calculated as:
 `(stepper_steps × micro_steps × gear_reduction) / 360.0`
 
+**Axis Travel Limits:**
+
+```cpp
+#define AXIS1_LIMIT_MIN           -200
+#define AXIS1_LIMIT_MAX            200
+```
+Extended beyond the default ±180° to allow additional travel past the meridian on the harmonic drive. The Juwei 17 has no mechanical hard stops on RA, so the extra ±20° of range provides more flexibility for tracking targets across the meridian before a flip is required.
+
 **Microstepping Configuration:**
 
 ```cpp
@@ -94,12 +102,28 @@ Same principles as AXIS1. DEC axis often uses identical settings.
 ```
 Current settings for DEC/ALT motor. DEC axis may require different current than RA depending on load balance.
 
+**Axis Travel Limits:**
+
+```cpp
+#define AXIS2_LIMIT_MIN            -10
+#define AXIS2_LIMIT_MAX             90
+```
+The lower DEC limit is restricted from the default `-90°` to `-10°` to prevent the OTA from swinging into the tripod/pier on the Juwei 17. The upper limit remains at `90°` (celestial pole).
+
+### Mount Behavior
+
+```cpp
+#define PIER_SIDE_PREFERRED_DEFAULT   EAST
+```
+Overrides the default `BEST` behavior. The mount now prefers the EAST pier side when a target is reachable from either side, giving more consistent startup orientation and predictable meridian-flip behavior for the Juwei 17.
+
 ### Juwei 17 Mount Configuration
 
 This setup is configured as an **Equatorial Mount (GEM)**:
-- AXIS1: RA tracking axis with TMC5160 driver (7163.4 steps/degree)
-- AXIS2: DEC positioning axis with TMC5160 driver (7182.4 steps/degree)
+- AXIS1: RA tracking axis with TMC5160 driver (7163.4 steps/degree), travel limits ±200°
+- AXIS2: DEC positioning axis with TMC5160 driver (7182.4 steps/degree), travel limits -10° to +90°
 - Mount type: `GEM`
+- Preferred pier side: `EAST`
 - Hardware: MaxESP3 controller board
 - Harmonic drive system provides exceptional precision and minimal backlash
 
