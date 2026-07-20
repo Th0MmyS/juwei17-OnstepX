@@ -4,6 +4,8 @@ Advanced computerized telescope controller firmware for precision astronomical m
 
 **This configuration is specifically set up for the [Juwei 17 Harmonic Drive Mount](https://www.aliexpress.com/item/1005009419602903.html)** - a compact equatorial mount with harmonic drive technology providing high precision and minimal backlash. The Juwei 17 controller board is 1:1 pin-compatible with the MaxESP3 pinmap.
 
+> ⚠️ **Disclaimer:** Any hardware or software modification described in this repository is performed **entirely at your own risk**. Flashing custom firmware, changing DIP switch settings, swapping stepper drivers (e.g. TMC2209 → TMC5160), adjusting axis travel limits, motor currents, or any other parameter in `Config.h` may damage your mount, controller board, motors, telescope, or void your warranty. Neither the author of this fork nor the upstream OnStepX authors accept responsibility for damage, injury, or loss resulting from its use. Verify every setting against your own hardware before powering on.
+
 ## Overview
 
 OnStepX is a powerful open-source telescope control system designed by Howard Dutton. It provides comprehensive control for telescope mounts with support for multiple motor driver types including Step/Dir, ODrive, and Servo configurations.
