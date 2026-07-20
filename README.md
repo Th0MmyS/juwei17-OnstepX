@@ -209,3 +209,7 @@ See the `LICENSE` file for full license text.
 ---
 
 *For detailed configuration of additional features including PEC, weather sensors, and other advanced options, refer to the heavily commented `Config.h` file and the online documentation.*
+
+## Source
+
+Juwei 17 flashing procedure and DIP switch mapping originally documented on the OnStep group: <https://onstep.groups.io/g/main/message/58916>
