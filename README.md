@@ -127,6 +127,31 @@ This setup is configured as an **Equatorial Mount (GEM)**:
 - Hardware: MaxESP3 controller board
 - Harmonic drive system provides exceptional precision and minimal backlash
 
+## Flashing the Firmware
+
+Before flashing, you must set the board's DIP switches into bootloader mode to allow programming over USB.
+
+### DIP Switch Mapping
+- **Switches 1, 2, 3**: Control the ESP8266 (`1 = RX`, `2 = TX`, `3 = IO0`)
+- **Switches 4, 5, 6**: Control the ESP32 (`4 = IO0`, `5 = RX`, `6 = TX`)
+
+### Standard vs. Flashing State
+
+| Mode | Switch 1 | Switch 2 | Switch 3 | Switch 4 | Switch 5 | Switch 6 |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Normal Operation** | OFF | OFF | OFF | OFF | **ON** | **ON** |
+| **ESP32 Flashing** | OFF | OFF | OFF | **ON** | **ON** | **ON** |
+
+### Step-by-Step Flashing Procedure
+
+1. **Remove Board**: Take the controller board out of the mount enclosure.
+2. **Disconnect Motors**: Ensure the motors are **not connected** to the board during flashing.
+3. **Set Flashing Mode**: Flip DIP switch **4 to ON** (switches 5 and 6 remain ON; switches 1, 2, 3 remain OFF).
+4. **Connect Power & USB**: Plug in your power source and connect the USB cable to your computer.
+5. **Turn On**: Power on the board.
+6. **Flash Firmware**: Upload the compiled OnStepX firmware using **Arduino IDE** or **esptool**.
+7. **Restore Switches**: Once flashing is complete, turn off power, flip DIP switch **4 back to OFF**, reinstall the board, and reconnect your motors.
+
 ## Getting Started
 
 1. Select your hardware pinmap in `Config.h`:
@@ -146,7 +171,7 @@ This setup is configured as an **Equatorial Mount (GEM)**:
 #define TIME_LOCATION_SOURCE    DS3231
 ```
 
-5. Flash the firmware to your controller
+5. Flash the firmware to your controller following the instructions above.
 
 6. Perform initial alignment and calibration
 
