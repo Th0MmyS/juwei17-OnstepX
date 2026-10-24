@@ -80,6 +80,13 @@ Do this once, before the first flash. Keep the `.bin` files somewhere safe.
 
 Use `0x100000` for a 1 MB module or `0x400000` for 4 MB, as reported by `flash_id`. **Note the flash size** — you need it in step 3.
 
+Reading the flash changes nothing on the chip. Before flashing anything, confirm each backup matches its chip (in that chip's flash mode), and keep two copies:
+
+```powershell
+& $esptool --chip esp32 -p COM5 verify_flash 0 juwei17_esp32_backup.bin
+& $esptool --chip esp8266 -p COM5 verify_flash 0 juwei17_esp8266_backup.bin
+```
+
 ## Step 2 — Flash OnStepX on the ESP32
 
 1. **Prepare the sketch folder.** Arduino requires the folder name to match the `.ino` file, and this repository's folder is not called `OnStepX`. Copy `OnStepX.ino`, `Config.h`, `Extended.config.h` and the `src` folder into a new folder named `OnStepX` (keep the path short, e.g. `C:\OnStepX`, to stay under the Windows 260-character path limit). Do not let the IDE "move" files inside the repository.
@@ -99,6 +106,8 @@ arduino-cli upload  --fqbn esp32:esp32:esp32 -p COM5 C:\OnStepX
 
 **Check it:** connect over Bluetooth to **`OnStepX`** (or USB at 9600 baud) with your usual app/ASCOM driver. The firmware version should read **10.27m**. After an upgrade from 10.22, re-enter site, date/time, park position, limits and backlash.
 
+Then, with the board back in the mount and the motors connected, **do a test goto** and confirm it moves. With driver status `ON`, a "hardware fault" here usually means the driver status line is not wired on this board — see [Troubleshooting](#troubleshooting).
+
 ## Step 3 — Flash the web server on the ESP8266
 
 1. **Get the source** for SWS 2.09g (the release that matches OnStepX 10.27m):
@@ -113,7 +122,11 @@ arduino-cli upload  --fqbn esp32:esp32:esp32 -p COM5 C:\OnStepX
 6. **Upload** (→ button).
 7. **Power off, set the DIP switches back to *Normal*,** reinstall the board, reconnect the motors, power on.
 
-**Check it:** join the WiFi network **`Juwei17`** and open **http://192.168.0.1** (the ESP8266 build does not start mDNS, so use the IP). The page header should show **Smart Web Server 2.09g (OnStep10.27m)**.
+**Check it:** join the WiFi network **`Juwei17`** and open **http://192.168.0.1** (the ESP8266 build does not start mDNS, so use the IP). The page header should show **Smart Web Server 2.09g (OnStep10.27m)**. Leave the page open for a few minutes: it should stay connected.
+
+### If the ESP8266 flash goes wrong
+
+The ESP8266's bootloader is in read-only memory inside the chip, so a bad flash (power loss mid-upload, wrong file, wrong settings) cannot brick it: set the *Flash ESP8266* switches, power-cycle, and flash again. The mount keeps working over Bluetooth and USB in the meantime, because OnStepX runs on the ESP32. Only electrical damage can really kill the chip. If you have no backup, the official SWS 2.09g is a complete replacement for the factory web server.
 
 > Do **not** use OnStepX's built-in ESP8266 flasher (`SERIAL_B_ESP_FLASHING` / `:ESPFLASH#`) on this board: the pins it needs are GPIO4 (used for TMC5160 driver status) and GPIO26 (the DEC direction signal). Use the DIP switches.
 
@@ -136,4 +149,7 @@ Put the chip into flash mode as above, then write the backup back:
 | Build fails on `Plugins.config.h` | The `src/plugins/Plugins.config.h` file is missing; it is part of this repository. |
 | Mount does nothing after an OnStepX upgrade | Stored settings were reset; re-enter site, date/time and limits, then unpark. |
 | Web page loads but shows no mount data | Check both sides use 9600 baud as the starting rate (`SERIAL_B_BAUD_DEFAULT` in OnStepX, `SERIAL_BAUD_DEFAULT` in the SWS) and `SERIAL_SWAP AUTO`. |
-| Mount won't move, "hardware fault" | Driver status found a fault (over-temperature or shorted coil). Check wiring and cooling; see [configuration.md](configuration.md#driver-status). |
+| Mount won't move, "hardware fault" — right after flashing | The driver status line (GPIO4) is probably not wired to the TMC5160s on this board, so every read looks like a fault. Set `AXIS1_DRIVER_STATUS` and `AXIS2_DRIVER_STATUS` to `OFF` and reflash. See [configuration.md](configuration.md#driver-status). |
+| Mount won't move, "hardware fault" — after working fine | A real fault: driver over-temperature or a shorted motor coil/cable. Check wiring and cooling. |
+| WiFi web server keeps dropping or rebooting | GPIO4 may also be wired to the ESP8266 reset on this board. Set both `DRIVER_STATUS` settings to `OFF` and reflash. |
+| `verify_flash` reports a mismatch on a backup | Read the backup again; don't flash until a backup verifies. |

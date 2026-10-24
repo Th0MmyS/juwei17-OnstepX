@@ -107,7 +107,11 @@ With `AXISn_DRIVER_STATUS ON`, OnStepX reads each TMC5160's status register over
 
 Open-load is read but ignored, because it is unreliable at standstill. On a fault the mount aborts any goto or guide, refuses new gotos/park/guide with a hardware-fault error, and stops the axis ([Mount.cpp:297](../src/telescope/mount/Mount.cpp)). Without monitoring, an overheating driver or a shorted cable just skips steps while OnStepX keeps believing its position.
 
-Both drivers return data on one shared pin, GPIO4 (AUX2). That pin is free in this configuration because `SERIAL_B_ESP_FLASHING` is `OFF` and there is no focuser. In 10.27 a failed status read keeps the previous status instead of raising a fault.
+Both drivers return data on one shared pin, GPIO4 (AUX2). That pin is free in this configuration because `SERIAL_B_ESP_FLASHING` is `OFF` and there is no focuser.
+
+> ⚠️ **Check this after flashing.** It is not confirmed that the Juwei 17 board connects the TMC5160 data-out (SDO) pins to GPIO4. OnStepX only rejects a status read that comes back as all zeros ([TmcSPI.cpp:215](../src/lib/axis/motor/stepDir/tmc/legacy/TmcSPI.cpp)). If the line is not connected or is pulled high, reads come back as all ones, which look like *short to ground + over-temperature*: **the mount refuses to move with a hardware fault.** The MaxESP3 pinmap also labels GPIO4 as the ESP8266 reset line; if the board wires it that way, status reads could **reset the web server**.
+>
+> After flashing, do a test goto and leave the web server open for a few minutes. If the mount reports a hardware fault, or WiFi keeps dropping, set `AXIS1_DRIVER_STATUS` and `AXIS2_DRIVER_STATUS` to `OFF` and reflash.
 
 ## Decay modes
 

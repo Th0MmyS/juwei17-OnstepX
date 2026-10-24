@@ -62,7 +62,7 @@ Notes from owners who swapped to TMC5160:
 | GPIO | Used for | Alternatives in the pinmap |
 |---|---|---|
 | 0 | RA direction | — |
-| 4 (AUX2) | TMC5160 SPI data out (MISO), both drivers → **driver status** | ESP8266 reset, focuser enable |
+| 4 (AUX2) | TMC5160 SPI data out (MISO), both drivers → **driver status** ⚠️ wiring on the Juwei board unconfirmed, see [configuration.md](configuration.md#driver-status) | ESP8266 reset, focuser enable |
 | 16 / 17 | Serial2 to the ESP8266 (web server) | — |
 | 21 / 22 (AUX3/4) | I2C → DS3231 clock | home switches |
 | 25 (AUX8) | **free** | status LED, buzzer, 1-Wire, `PARK_STATUS` |
