@@ -9,13 +9,11 @@
 #include "../../../lib/convert/Convert.h"
 #include "../../../libApp/commands/ProcessCmds.h"
 #include "../../../lib/calendars/Calendars.h"
-#include "../../../lib/tls/ds3231/DS3231.h"
-#include "../../../lib/tls/ds3234/DS3234.h"
-#include "../../../lib/tls/gps/GPS.h"
-#include "../../../lib/tls/ntp/NTP.h"
-#include "../../../lib/tls/sd3031/SD3031.h"
-#include "../../../lib/tls/teensy/Teensy.h"
-#include "../../../lib/tls/PPS.h"
+#include "../../../lib/tls/Tls.h"
+
+#ifndef SITE_MIN_PPS_SUB_MICRO
+  #define SITE_MIN_PPS_SUB_MICRO 4
+#endif
 
 extern volatile unsigned long fracLAST;
 
@@ -46,7 +44,7 @@ class Site {
   public:
     void init();
     
-    bool command(char *reply, char *command, char *parameter, bool *supressFrame, bool *numericReply, CommandError *commandError);
+    bool command(char *reply, char *command, char *parameter, bool *suppressFrame, bool *numericReply, CommandError *commandError);
 
     // update/apply the site latitude and longitude, necessary for LAST calculations etc.
     void updateLocation();
@@ -93,6 +91,10 @@ class Site {
 
     #if TIME_LOCATION_SOURCE != OFF
       TimeLocationSource *tls;
+    #endif
+
+    #if TIME_LOCATION_SOURCE_FALLBACK != OFF
+      TimeLocationSource *tlsFallback;
     #endif
 
   private:

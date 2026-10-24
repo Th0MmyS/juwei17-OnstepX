@@ -50,9 +50,9 @@ Extended beyond the default ±180° to allow additional travel past the meridian
 Microstepping resolution during tracking. Higher values (16, 32, 64, 128, 256) provide smoother motion.
 
 ```cpp
-#define AXIS1_DRIVER_MICROSTEPS_GOTO  2
+#define AXIS1_DRIVER_MICROSTEPS_GOTO  8
 ```
-Microstepping during slews. Lower values allow faster movement while maintaining torque.
+Microstepping during slews. Lower values allow faster movement while maintaining torque; 8 gives smoother, quieter slews than 2 and still leaves plenty of step-rate headroom at 4°/s when combined with `STEP_WAVE_FORM PULSE`.
 
 **Current Settings (TMC Drivers):**
 
@@ -91,7 +91,7 @@ Steps per degree calibration. May differ from AXIS1 if gear ratios are different
 
 ```cpp
 #define AXIS2_DRIVER_MICROSTEPS   32
-#define AXIS2_DRIVER_MICROSTEPS_GOTO  2
+#define AXIS2_DRIVER_MICROSTEPS_GOTO  8
 ```
 Same principles as AXIS1. DEC axis often uses identical settings.
 
@@ -192,7 +192,9 @@ Comprehensive documentation available at the [OnStep Wiki](https://groups.io/g/o
 
 ## Version
 
-Current firmware: **v10.26g**
+Current firmware: **v10.27m** (upstream [hjd1964/OnStepX](https://github.com/hjd1964/OnStepX) commit `6f928aaf`)
+
+> Upgrading from 10.22: the first boot of 10.27 resets all settings stored on the mount (site, park, limits, backlash, rates). Note them down before flashing. The Bluetooth name is set by `HOST_NAME` (kept as `"OnStepX"`). The web server on the ESP8266 should be Smart Web Server 2.09 or newer.
 
 ## License
 

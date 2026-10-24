@@ -6,6 +6,8 @@
 
 #if defined(MOUNT_PRESENT)
 
+#include "../../../lib/nv/Nv.h"
+
 #include "../../Telescope.h"
 #include "../coordinates/Transform.h"
 
@@ -29,7 +31,7 @@ class Park {
   public:
     void init();
 
-    bool command(char *reply, char *command, char *parameter, bool *supressFrame, bool *numericReply, CommandError *commandError);
+    bool command(char *reply, char *command, char *parameter, bool *suppressFrame, bool *numericReply, CommandError *commandError);
 
     // sets a park position
     CommandError set();

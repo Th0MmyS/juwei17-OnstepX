@@ -1,8 +1,7 @@
 // ethernet IP command server
 #include "CmdServer.h"
 
-#if (OPERATIONAL_MODE == ETHERNET_W5100 || OPERATIONAL_MODE == ETHERNET_W5500) && \
-    COMMAND_SERVER != OFF
+#if OPERATIONAL_MODE >= ETHERNET_FIRST && OPERATIONAL_MODE <= ETHERNET_LAST && COMMAND_SERVER != OFF
 
   #include "../../tasks/OnTask.h"
   #include "../../../libApp/cmd/Cmd.h"
@@ -18,16 +17,18 @@
   }
 
   void CmdServer::handleClient() {
+    const unsigned long now = millis();
+
     // disconnect client
     if (cmdSvrClient && !cmdSvrClient.connected()) cmdSvrClient.stop();
-    if (cmdSvrClient && (long)(clientEndTimeMs - millis()) < 0) cmdSvrClient.stop();
+    if (cmdSvrClient && (long)(now - clientEndTimeMs) > 0) cmdSvrClient.stop();
 
     // new client
     if (!cmdSvrClient) {
       cmdSvrClient = cmdSvr->available();
       if (cmdSvrClient) {
         // find free/disconnected spot
-        clientEndTimeMs = millis() + (unsigned long)clientTimeoutMs;
+        clientEndTimeMs = now + clientTimeoutMs;
       }
     }
 
@@ -37,7 +38,7 @@
       static int cmdBufferPos = 0;
 
       // still active? push back disconnect
-      if (persist) clientEndTimeMs = millis() + (unsigned long)clientTimeoutMs;
+      if (persist) clientEndTimeMs = now + clientTimeoutMs;
 
       // get the data
       byte b = cmdSvrClient.read();

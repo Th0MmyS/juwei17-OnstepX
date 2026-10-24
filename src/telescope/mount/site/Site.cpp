@@ -6,6 +6,7 @@
 #ifdef MOUNT_PRESENT
 
 #include "../../../lib/tasks/OnTask.h"
+#include "../../../lib/nv/Nv.h"
 
 #include "../../Telescope.h"
 #include "../park/Park.h"
@@ -38,7 +39,7 @@ IRAM_ATTR void clockTickWrapper() { fracLAST++; }
 
       JulianDate jd;
       VLF("MSG: Mount, getting date/time from GPS");
-      unsigned long syncTimeout = millis() + 1000;
+      unsigned long syncTimeout = millis() + 1000U;
       while (!site.tls->get(jd) && (long)(millis() - syncTimeout) < 0) { };
       if ((long)(millis() - syncTimeout) < 0) {
         site.dateIsReady = true;
@@ -55,9 +56,9 @@ IRAM_ATTR void clockTickWrapper() { fracLAST++; }
     } else
 
     if ((long)(millis() - site.updateTimeoutTime) > 0) {
-      VLF("MSG: Mount, GPS timed out stopping monitor task");
+      DLF("WRN: Mount, GPS timed out stopping monitor task");
       tasks.setDurationComplete(tasks.getHandleByName("gpsChk"));
-      VLF("WRN: TLS, GPS timed out stopping monitor task");
+      DLF("WRN: TLS, GPS timed out stopping GPS polling task");
       tasks.setDurationComplete(tasks.getHandleByName("gpsPoll"));
       initError.tls = true; 
     }
@@ -80,9 +81,9 @@ IRAM_ATTR void clockTickWrapper() { fracLAST++; }
     } else
 
     if ((long)(millis() - site.updateTimeoutTime) > 0) {
-      VLF("MSG: Mount, NTP timed out stopping monitor task");
+      DLF("MSG: Mount, NTP timed out stopping monitor task");
       tasks.setDurationComplete(tasks.getHandleByName("ntpChk"));
-      VLF("WRN: TLS, NTP timed out stopping monitor task");
+      DLF("WRN: TLS, NTP timed out stopping monitor task");
       tasks.setDurationComplete(tasks.getHandleByName("ntp"));
       initError.tls = true; 
     }
@@ -112,7 +113,7 @@ IRAM_ATTR void clockTickWrapper() { fracLAST++; }
     // DF("MSG: Site,"); D(syncc); DF("sub-micro delta="); D((long)pps.averageSubMicros - 16000000L); DF("us, pps="); D(p/1000L); DF("ms, time.sec="); D(s/1000L); DF("ms, delta="); D(delta/1000); DLF("ms");
 
     if (abs(deltaAvg) < 3000L) return;
-    pps.averageSubMicrosSkew = (-deltaAvg*HAL_MIN_PPS_SUB_MICRO)/2000L;
+    pps.averageSubMicrosSkew = (-deltaAvg*SITE_MIN_PPS_SUB_MICRO)/2000L;
     if (pps.averageSubMicrosSkew < -128) pps.averageSubMicrosSkew = -128; else
     if (pps.averageSubMicrosSkew > 128) pps.averageSubMicrosSkew = 128;
   }
@@ -126,6 +127,16 @@ void Site::init() {
 
   // get date/time from a TLS or NV
   #if TIME_LOCATION_SOURCE != OFF
+
+    #if TIME_LOCATION_SOURCE_FALLBACK == DS3231
+      tlsFallback = new TlsDs3231;
+    #elif TIME_LOCATION_SOURCE_FALLBACK == DS3234
+      tlsFallback = new TlsDs3234;
+    #elif TIME_LOCATION_SOURCE_FALLBACK == SD3031
+      tlsFallback = new TlsSd3031;
+    #elif TIME_LOCATION_SOURCE_FALLBACK == TEENSY
+      tlsFallback = new TlsTeensy;
+    #endif
 
     #if TIME_LOCATION_SOURCE == DS3231
       tls = new TlsDs3231;
@@ -149,22 +160,35 @@ void Site::init() {
         timeIsReady = true;
         VLF("MSG: Mount, site get Date/Time from TLS");
       } else {
-        VLF("MSG: Site, falling back to Date/Time from NV");
-        readJD();
         #if TIME_LOCATION_SOURCE == GPS
-          updateTimeoutTime = millis() + GPS_TIMEOUT_MINUTES*60000UL;
+          updateTimeoutTime = millis() + GPS_TIMEOUT_MINUTES*60000U;
           VF("MSG: Site, start GPS check task (rate 5000ms priority 7)... ");
           if (tasks.add(5000, 0, true, 7, gpsCheck, "gpsChk")) { VLF("success"); } else { VLF("FAILED!"); }
         #endif
         #if TIME_LOCATION_SOURCE == NTP
-          updateTimeoutTime = millis() + NTP_TIMEOUT_SECONDS*1000UL;
+          updateTimeoutTime = millis() + NTP_TIMEOUT_SECONDS*1000U;
           VF("MSG: Site, start NTP check task (rate 5000ms priority 7)... ");
           if (tasks.add(5000, 0, true, 7, ntpCheck, "ntpChk")) { VLF("success"); } else { VLF("FAILED!"); }
         #endif
       }
-    } else {
+    }
+
+    #if TIME_LOCATION_SOURCE_FALLBACK != OFF
+      if (tlsFallback->init() && tlsFallback->isReady()) {
+        tlsFallback->get(ut1);
+        dateIsReady = true;
+        timeIsReady = true;
+        #if TIME_LOCATION_SOURCE_FALLBACK == DS3231
+          if (initError.tls) tlsFallback->ppsEnable();
+        #endif
+        initError.tls = false;
+        VLF("MSG: Mount, site get Date/Time from fallback TLS");
+      }
+    #endif
+
+    if (initError.tls) {
       DLF("WRN: Site::init(), Warning TLS initialization failed");
-      VLF("WRN: Site::init(), fallback to last Date/Time from NV");
+      DLF("WRN: Site::init(), fallback to last Date/Time from NV");
       readJD();
     }
   #else
@@ -177,7 +201,7 @@ void Site::init() {
   VF("MSG: Mount, site start sidereal timer task (rate 10ms priority 0)... ");
   delay(100);
   // period ms (0=idle), duration ms (0=forever), repeat, priority (highest 0..7 lowest), task_handle
-  taskHandle = tasks.add(0, 0, true, 0, clockTickWrapper, "ClkTick");
+  taskHandle = tasks.add(0, 0, true, 0, clockTickWrapper, "MtTick");
   if (taskHandle) {
     VLF("success"); 
     if (!tasks.requestHardwareTimer(taskHandle, 1)) { DLF("WRN: Site::init(), didn't get h/w timer for Clock (using s/w timer)"); }
@@ -212,6 +236,9 @@ void Site::updateLocation() {
 void Site::updateTLS() {
   #if TIME_LOCATION_SOURCE != OFF
     tls->set(ut1);
+  #endif
+  #if TIME_LOCATION_SOURCE_FALLBACK != OFF
+    tlsFallback->set(ut1);
   #endif
 
   if (isDateTimeReady()) {

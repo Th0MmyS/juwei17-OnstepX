@@ -5,13 +5,16 @@
 
 #ifdef MOUNT_PRESENT
 
+#include "../../../lib/nv/Nv.h"
+
 #include "../../../libApp/commands/ProcessCmds.h"
+
 #include "../../Telescope.h"
 #include "../home/Home.h"
 #include "../Mount.h"
 
-bool Site::command(char *reply, char *command, char *parameter, bool *supressFrame, bool *numericReply, CommandError *commandError) {
-  *supressFrame = false;
+bool Site::command(char *reply, char *command, char *parameter, bool *suppressFrame, bool *numericReply, CommandError *commandError) {
+  *suppressFrame = false;
   PrecisionMode precisionMode = convert.precision;
 
   if (command[0] == 'G') {
@@ -129,7 +132,7 @@ bool Site::command(char *reply, char *command, char *parameter, bool *supressFra
       // :GX89#     Date/time ready status
       //            Return: 0 ready, 1 not ready
       if (parameter[1] == '9') {
-        if (dateIsReady && timeIsReady) *commandError = CE_0;
+        if (dateIsReady && timeIsReady) *commandError = CE_0; else *commandError = CE_1;
       } else return false;
 
     } else return false;
@@ -230,6 +233,9 @@ bool Site::command(char *reply, char *command, char *parameter, bool *supressFra
       if (dut1 >= -0.9 && dut1 <= 0.9) {
         #if TIME_LOCATION_SOURCE != OFF
           tls->DUT1 = dut1;
+        #endif
+        #if TIME_LOCATION_SOURCE_FALLBACK != OFF
+          tlsFallback->DUT1 = dut1;
         #endif
       } else *commandError = CE_PARAM_FORM;
     } else

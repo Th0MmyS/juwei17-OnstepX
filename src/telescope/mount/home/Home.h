@@ -29,7 +29,7 @@ class Home {
     // init the home position (according to settings and mount type)
     void init();
 
-    bool command(char *reply, char *command, char *parameter, bool *supressFrame, bool *numericReply, CommandError *commandError);
+    bool command(char *reply, char *command, char *parameter, bool *suppressFrame, bool *numericReply, CommandError *commandError);
 
     // move mount to the home position
     CommandError request();
@@ -49,7 +49,7 @@ class Home {
     // reset mount at home
     CommandError reset(bool fullReset = true);
 
-    // get the home position
+    // get the home position (Mount coordinate system)
     Coordinate getPosition(CoordReturn coordReturn = CR_MOUNT_EQU);
 
     // home sensing

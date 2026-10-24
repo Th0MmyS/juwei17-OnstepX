@@ -6,6 +6,7 @@
 #if defined(MOUNT_PRESENT)
 
 #include "../../../lib/tasks/OnTask.h"
+#include "../../../lib/nv/Nv.h"
 
 #include "../../Telescope.h"
 #include "../Mount.h"
@@ -59,6 +60,9 @@ void Goto::init() {
   if (settings.usPerStepCurrent < usPerStepBase/2.0F) settings.usPerStepCurrent = usPerStepBase/2.0F;
   if (settings.usPerStepCurrent > usPerStepBase*2.0F) settings.usPerStepCurrent = usPerStepBase*2.0F;
 
+  axis1.setFrequencyMax(((1000000.0F/usPerStepBase)/axis1.getStepsPerMeasure())*2.0F);
+  axis2.setFrequencyMax(((1000000.0F/usPerStepBase)/axis2.getStepsPerMeasure())*2.0F);
+
   if (AXIS1_SYNC_THRESHOLD != OFF || AXIS2_SYNC_THRESHOLD != OFF) absoluteEncodersPresent = true;
   if (AXIS1_HOME_TOLERANCE != 0.0F || AXIS2_HOME_TOLERANCE != 0.0F ||
       AXIS1_TARGET_TOLERANCE != 0.0F || AXIS2_TARGET_TOLERANCE != 0.0F || absoluteEncodersPresent) encodersPresent = true;
@@ -87,7 +91,6 @@ CommandError Goto::request(Coordinate coords, PierSideSelect pierSideSelect, boo
 
   lastAlignTarget = target;
 
-
   #if AXIS1_SECTOR_GEAR == ON || AXIS2_TANGENT_ARM == ON
     double a1, a2;
 
@@ -95,16 +98,16 @@ CommandError Goto::request(Coordinate coords, PierSideSelect pierSideSelect, boo
     #if AXIS1_SECTOR_GEAR == ON
       transform.mountToInstrument(&target, &a1, &a2);
       a1 = a1 - axis1.getIndexPosition();
-      if (a1 < axis1.settings.limits.min) return CE_SLEW_ERR_OUTSIDE_LIMITS;
-      if (a1 > axis1.settings.limits.max) return CE_SLEW_ERR_OUTSIDE_LIMITS;
+      if (a1 < axis1.getLimitMin()) return CE_SLEW_ERR_OUTSIDE_LIMITS;
+      if (a1 > axis1.getLimitMax()) return CE_SLEW_ERR_OUTSIDE_LIMITS;
     #endif
 
     // handle special case of a tangent arm Dec
     #if AXIS2_TANGENT_ARM == ON
       transform.mountToInstrument(&target, &a1, &a2);
       a2 = a2 - axis2.getIndexPosition();
-      if (a2 < axis2.settings.limits.min) return CE_SLEW_ERR_OUTSIDE_LIMITS;
-      if (a2 > axis2.settings.limits.max) return CE_SLEW_ERR_OUTSIDE_LIMITS;
+      if (a2 < axis2.getLimitMin()) return CE_SLEW_ERR_OUTSIDE_LIMITS;
+      if (a2 > axis2.getLimitMax()) return CE_SLEW_ERR_OUTSIDE_LIMITS;
     #endif
   #endif
 
@@ -141,6 +144,19 @@ CommandError Goto::request(Coordinate coords, PierSideSelect pierSideSelect, boo
     VLF("MSG: Mount, goto changes pier side, setting waypoint at home");
     waypoint(&current);
   }
+
+  // allow goto and enable tracking after any of the limits below are exceeded
+  // typically these are triggered by tracking into the relevant limit and
+  // a goto is safe since it should always move away from the limit else it wouldn't be allowed
+  // finally I enabling tracking again since that allows for easy recovery
+  #if LIMIT_RECOVERY == ON
+    if (limits.isBelowHorizon() || limits.isPastMeridianW() || limits.isPastAxis1Max()) {
+      limits.limitsDisablePeriod(1.0F);
+      #if LIMIT_RECOVERY_WITH_TRACKING == ON
+        if (home.state != HS_HOMING && park.state != PS_PARKING) mount.tracking(true);
+      #endif
+    }
+  #endif
 
   // start the goto monitor
   if (taskHandle != 0) tasks.remove(taskHandle);
@@ -226,7 +242,8 @@ CommandError Goto::setTarget(Coordinate *coords, PierSideSelect pierSideSelect, 
 
   target = *coords;
 
-  if (transform.mountType == ALTAZM) transform.horToEqu(&target); else transform.equToHor(&target);
+  if (transform.mountType == ALTAZM) transform.horToEqu(&target); else
+  if (transform.mountType == ALTALT) transform.aaToEqu(&target); else transform.equToHor(&target);
 
   // east side of pier is always the default polar-home position
   // east side of pier - we're in the western sky and the HA's are positive
@@ -237,6 +254,11 @@ CommandError Goto::setTarget(Coordinate *coords, PierSideSelect pierSideSelect, 
   if (!transform.meridianFlips) pierSideSelect = PSS_EAST_ONLY;
 
   bool pierSideBest = false;
+  if (pierSideSelect == PSS_AUTO) {
+    if (transform.mountType != ALTAZM && transform.mountType != ALTALT) {
+      if (isGoto && (current.h < -Deg90 || current.h > Deg90)) pierSideSelect = PSS_WEST; else pierSideSelect = PSS_EAST;
+    } else pierSideSelect = PSS_BEST;
+  }
   if (pierSideSelect == PSS_BEST) {
     if (current.pierSide == PIER_SIDE_WEST) pierSideSelect = PSS_WEST; else pierSideSelect = PSS_EAST;
     pierSideBest = true;
@@ -335,8 +357,10 @@ CommandError Goto::setTarget(Coordinate *coords, PierSideSelect pierSideSelect, 
   if (target.pierSide == PIER_SIDE_EAST) target.a1Correction = axis1TargetCorrectionE;
   if (target.pierSide == PIER_SIDE_WEST) target.a1Correction = axis1TargetCorrectionW;
 
-  if (transform.mountType == ALTAZM) transform.horToEqu(&target); else transform.equToHor(&target);
   transform.observedPlaceToMount(&target);
+  if (transform.mountType == ALTAZM) transform.horToEqu(&target); else
+  if (transform.mountType == ALTALT) transform.aaToEqu(&target); else transform.equToHor(&target);
+
   transform.hourAngleToRightAscension(&target, false);
 
   return CE_NONE;
@@ -383,7 +407,8 @@ CommandError Goto::alignAddStar(bool sync) {
 
     // update the targets HA and Horizon coords as necessary
     transform.rightAscensionToHourAngle(&lastAlignTarget, true);
-    if (transform.mountType == ALTAZM) transform.equToHor(&lastAlignTarget);
+    if (transform.mountType == ALTAZM) transform.equToHor(&lastAlignTarget); else
+    if (transform.mountType == ALTALT) transform.equToAa(&lastAlignTarget);
 
     #if ALIGN_MAX_NUM_STARS > 1
       e = transform.align.addStar(alignState.currentStar, alignState.lastStar, &lastAlignTarget, &mountPosition);
@@ -452,17 +477,19 @@ void Goto::poll() {
     axis2.autoSlewAbort();
   }
 
+  const unsigned long now = millis();
+
   // abort any goto that might hang!
   if (axis1.isSlewing()) {
-    if (!axis1.nearTarget()) nearTargetTimeoutAxis1 = millis();
-    if ((long)(millis() - nearTargetTimeoutAxis1) > 15000) {
+    if (!axis1.nearTarget()) nearTargetTimeoutAxis1 = now;
+    if (now - nearTargetTimeoutAxis1 > 15000U) {
       DLF("WRN: Mount, goto axis1 timed out aborting slew!");
       axis1.autoSlewAbort();
     }
   }
   if (axis2.isSlewing()) {
-    if (!axis2.nearTarget()) nearTargetTimeoutAxis2 = millis();
-    if ((long)(millis() - nearTargetTimeoutAxis2) > 15000) {
+    if (!axis2.nearTarget()) nearTargetTimeoutAxis2 = now;
+    if (now - nearTargetTimeoutAxis2 > 15000U) {
       DLF("WRN: Mount, goto axis2 timed out aborting slew!");
       axis2.autoSlewAbort();
     }
@@ -490,13 +517,13 @@ void Goto::poll() {
     if (stage == GG_NEAR_DESTINATION_START) {
       if (nearDestinationRefineStages >= 1) {
         VLF("MSG: Mount, goto near destination wait started");
-        nearDestinationTimeout = millis() + GOTO_SETTLE_TIME;
+        nearDestinationTimeout = now + GOTO_SETTLE_TIME;
         stage = GG_NEAR_DESTINATION_WAIT;
       } else stage = GG_NEAR_DESTINATION;
     } else
 
     if (stage == GG_NEAR_DESTINATION_WAIT) {
-      if ((long)(millis() - nearDestinationTimeout) > 0) {
+      if ((long)(now - nearDestinationTimeout) > 0) {
         VLF("MSG: Mount, goto near destination wait done");
         stage = GG_NEAR_DESTINATION;
       }
@@ -605,12 +632,13 @@ void Goto::poll() {
     target.d += siderealToRad(mount.trackingRateOffsetDec)/FRACTIONAL_SEC;
     transform.rightAscensionToHourAngle(&target, false);
     if (stage >= GG_NEAR_DESTINATION_START) {
-      if (millis() - nearTargetTimeout < 5000) {
+      if (millis() - nearTargetTimeout < 5000U) {
         Coordinate nearTarget = target;
         nearTarget.h -= slewDestinationDistHA;
         nearTarget.d -= slewDestinationDistDec;
 
-        if (transform.mountType == ALTAZM) transform.equToHor(&nearTarget);
+        if (transform.mountType == ALTAZM) transform.equToHor(&nearTarget); else
+        if (transform.mountType == ALTALT) transform.equToAa(&nearTarget);
 
         double a1, a2;
         transform.mountToInstrument(&nearTarget, &a1, &a2);
@@ -626,8 +654,9 @@ void Goto::poll() {
 CommandError Goto::startAutoSlew() {
   CommandError e;
 
-  nearTargetTimeoutAxis1 = millis();
-  nearTargetTimeoutAxis2 = millis();
+  const unsigned long now = millis();
+  nearTargetTimeoutAxis1 = now;
+  nearTargetTimeoutAxis2 = now;
 
   if (stage == GG_NEAR_DESTINATION || stage == GG_DESTINATION) {
     destination.h -= slewDestinationDistHA;

@@ -3,17 +3,17 @@
 // from here: https://github.com/PaulStoffregen/Time
 #pragma once
 
-#include "../../../Common.h"
+#include "../TlsBase.h"
 
 #if defined(TIME_LOCATION_SOURCE) && TIME_LOCATION_SOURCE == NTP
 
 #if OPERATIONAL_MODE == WIFI
   #include <WiFiUdp.h>
+#elif OPERATIONAL_MODE == ETHERNET_TEENSY41
+  #include <NativeEthernetUdp.h>
 #else
   #include <EthernetUdp.h>
 #endif
-
-#include "../TLS.h"
 
 #ifndef NTP_TIMEOUT_SECONDS
   #define NTP_TIMEOUT_SECONDS 300 // wait up to 5 minutes to get date/time, use 0 to disable timeout

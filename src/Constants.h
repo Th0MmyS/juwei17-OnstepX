@@ -14,30 +14,35 @@
 #define FYSETC_S6_2                 4      // FYSETC S6 Version 2.0, 3D printer board, a 6-axis design
 
 #define BTT_SKR_PRO                 5      // BigTreeTech SKR PRO Version 1.2
+#define BTT_OCTOPUS_PRO             6      // BigTreeTech Octopus Pro Version 1.1
 
-#define MiniPCB                     6      // small 2-axis design for embedded or mounting behind a panel, Teensy3.2
-#define MiniPCB13                   7      // improved version 1.3 adds better support for ESP-01 flashing and optional I2C
+#define MiniPCB                     7      // small 2-axis design for embedded or mounting behind a panel, Teensy3.2
+#define MiniPCB13                   8      // improved version 1.3 adds better support for ESP-01 flashing and optional I2C
 
-#define MiniPCB2                    8      // 2-axis design for small alum. case, Teensy3.2
+#define MiniPCB2                    9      // 2-axis design for small alum. case, Teensy3.2
 
-#define MaxPCB                      9      // first generation custom 4-axis board, Teensy3.5/Teensy3.6
-#define MaxPCB2                     10     // improved second generation for alum. case, Teensy3.5/Teensy3.6
-#define MaxPCB3                     11     // improved third generation for alum. case, Teensy4.1
-#define MaxPCB4                     12     // for Teensy4.1 w/TMC2209 support
-#define MaxSTM3                     13     // update to the MaxPCB3 using an Blackpill F411CE instead of the Teensy3.5/3.6
-#define MaxSTM3I                    14     // as above but using an onboard STM32F411CE with M24C64 EEPROM as default
+#define MaxPCB                      10     // first generation custom 4-axis board, Teensy3.5/Teensy3.6
+#define MaxPCB2                     11     // second generation adds alum. case, Teensy3.5/Teensy3.6
+#define MaxPCB3                     12     // third generation adds SPI four axis support, Teensy4.1
+#define MaxPCB4                     13     // forth generation with SPI/TMC2209 support, Teensy4.1
+#define RESERVED                    14     // RESERVED
 
-#define MaxESP3                     15     // adds 4th axis and option to flash the WeMos D1 Mini WiFi through OnStep
-#define MaxESP4                     16     // for ESP32S w/TMC2209 support
-#define CNC3                        17     // Arduino CNC Sheild on WeMos D1 R32 (ESP32)
-#define MicroScope                  18     // MicroScope PCB (ESP32, experimental and may be removed at any point!, USE AY YOUR OWN RISK!!!)
+#define MaxSTM3                     15     // update to the MaxPCB3 using an Blackpill F411CE instead of the Teensy3.5/3.6
+#define MaxSTM3I                    16     // as above but using an onboard STM32F411CE with M24C64 EEPROM as default
 
-#define STM32Blue                   19     // Khalid and Dave's PCB for STM32 Blue pill (STM32F103CB and STM32F303CC)
+#define MaxESP3                     17     // adds 4th axis and option to flash the WeMos D1 Mini WiFi through OnStep
+#define MaxESP4                     18     // for ESP32S w/TMC2209 support
+#define CNC3                        19     // Arduino CNC Sheild on WeMos D1 R32 (ESP32)
+#define MicroScope                  20     // MicroScope PCB (ESP32, experimental and may be removed at any point!, USE AY YOUR OWN RISK!!!)
 
-#define JTWSTM                      20     // JTW Astronomy JTWSTM telescope mount controller Rev 2.1
-#define MANTICORE                   21     // JTW Astronomy MANTICORE telescope mount controller Rev 1.0
+#define STM32Blue                   21     // Khalid and Dave's PCB for STM32 Blue pill (STM32F103CB and STM32F303CC)
 
-#define PINMAP_LAST                 21
+#define JTWSTM                      22     // JTW Astronomy JTWSTM telescope mount controller Rev 2.1
+#define MANTICORE                   23     // JTW Astronomy MANTICORE telescope mount controller Rev 1.0
+
+#define SAL_XB1                     24     // SAL-XB1 telescope mount controller
+
+#define PINMAP_LAST                 24
 
 // WEATHER sensors (temperature, pressure, and humidity)
 #define WEATHER_FIRST               1
@@ -59,15 +64,18 @@
 
 // MOUNT TYPE
 #define MOUNT_TYPE_FIRST            1
+#define MOUNT_SUBTYPE_FIRST         1
 #define GEM                         1      // German Equatorial Mount, meridian flips enabled
 #define FORK                        2      // Fork Mount, meridian flips disabled
 #define ALTAZM                      3      // Altitude Azimuth Mounts, Dobsonians, etc.
-#define GEM_TA                      4      // GEM, w/tangent arm Declination
-#define GEM_TAC                     5      // GEM, w/tangent arm Declination and geometry correction
-#define FORK_TA                     6      // FORK, w/tangent arm Declination
-#define FORK_TAC                    7      // FORK, w/tangent arm Declination and geometry correction
-#define ALTAZM_UNL                  8      // ALTAZM, w/unlimited Azmiuth motion
-#define MOUNT_TYPE_LAST             8
+#define ALTALT                      4      // Altitude Altitude Mounts
+#define MOUNT_SUBTYPE_LAST          4
+#define GEM_TA                      5      // GEM, w/tangent arm Declination
+#define GEM_TAC                     6      // GEM, w/tangent arm Declination and geometry correction
+#define FORK_TA                     7      // FORK, w/tangent arm Declination
+#define FORK_TAC                    8      // FORK, w/tangent arm Declination and geometry correction
+#define ALTAZM_UNL                  9      // ALTAZM, w/unlimited Azmiuth motion
+#define MOUNT_TYPE_LAST             9
 
 // MOUNT COORDS
 #define MOUNT_COORDS_FIRST          1
@@ -92,7 +100,8 @@
 #define EAST                        1      // same as PSS_EAST
 #define WEST                        2      // same as PSS_WEST
 #define BEST                        3      // same as PSS_BEST
-#define PIER_SIDE_LAST              3
+#define AUTOMATIC                   4      // same as PSS_AUTO
+#define PIER_SIDE_LAST              4
 
 // COMPENSATED TRACKING
 #define COMPENSATED_TRACKING_FIRST  1
@@ -122,15 +131,13 @@
 #define INTERVALOMETER              4      // control an camera shutter
 #define MOMENTARY_SWITCH            5      // control an simple momentary on/off switch
 #define HIDDEN_SWITCH               6      // control an hidden on/off switch (for controlling a pin state at boot)
-#define AUX_FEATURE_PURPOSE_LAST    6
+#define COVER_SWITCH                7      // control an servo driven OTA cover where "on" is closed and "off" is open
+#define AUX_FEATURE_PURPOSE_LAST    7
 
 // --------------------------------------------------------------------------------------------------------------------------
 
-// a short string describing this product
-#define PROD_ABV                    "OnStepX"
-
 // task manager
-#define TASKS_MAX                   48     // up to 48 tasks
+#define TASKS_MAX                   60     // up to 60 tasks
 #define TASKS_SKIP_MISSED                  // just skip missed tasks if too late
 #ifdef ESP32
   #define TASKS_HWTIMERS             4     // up to 4 hardware timers
@@ -146,7 +153,7 @@
 #define SERIAL_ST4_SERVER_PRESENT
 
 // NV -------------------------------------------------------------------------------------------------------------------
-#define INIT_NV_KEY                 583928939UL
+#define INIT_NV_KEY                 583928945UL
 
 #define NV_KEY                      0      // bytes: 4   , 4
 #define NV_SITE_NUMBER              4      // bytes: 1   , 1
@@ -164,13 +171,13 @@
 #define NV_MOUNT_STATUS_BASE        248    // bytes: 1   , 1
 #define NV_MOUNT_LAST_POSITION      249    // bytes: 9   , 9
 
-#define NV_ALIGN_MODEL_BASE         258    // bytes: 32  , 32
-#define NV_AXIS_SETTINGS_REVERT     290    // bytes: 2   , 2
-#define NV_AXIS_SETTINGS_BASE       292    // bytes: 45*9, 405
-#define NV_AXIS_ENCODER_ZERO_BASE   697    // bytes: 4 *2, 8
-#define NV_FOCUSER_SETTINGS_BASE    705    // bytes: 20*6, 120
-#define NV_ROTATOR_SETTINGS_BASE    825    // bytes: 11  , 11
-#define NV_FEATURE_SETTINGS_BASE    836    // bytes: 3 *8, 24
-#define NV_TELESCOPE_SETTINGS_BASE  860    // bytes: 2   , 2
+#define NV_ALIGN_MODEL_BASE         258    // bytes: 48  , 48
+#define NV_AXIS_SETTINGS_REVERT     306    // bytes: 2   , 2
+#define NV_AXIS_SETTINGS_BASE       308    // bytes: 76*9, 684
+#define NV_AXIS_ENCODER_ZERO_BASE   992    // bytes: 4 *2, 8
+#define NV_FOCUSER_SETTINGS_BASE    1000   // bytes: 20*6, 120
+#define NV_ROTATOR_SETTINGS_BASE    1003   // bytes: 11  , 11
+#define NV_FEATURE_SETTINGS_BASE    1014   // bytes: 5 *8, 40
+#define NV_TELESCOPE_SETTINGS_BASE  1054   // bytes: 2   , 2
 
-#define NV_LAST                     861
+#define NV_LAST                     1055
