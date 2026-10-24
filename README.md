@@ -44,6 +44,7 @@ Key settings (full explanation in [docs/configuration.md](docs/configuration.md)
 | [Upgrading to 10.27](docs/upgrading-to-10.27.md) | Why 10.27m, what changed, what to write down before flashing (settings are reset) |
 | [Web server](docs/web-server.md) | Smart Web Server version, configuration, Advanced Configuration caveats |
 | [Hardware notes](docs/hardware.md) | Motors, gearing, drivers, pin usage, RA brake, sources |
+| [Motor upgrade plan](docs/motor-upgrade-plan.md) | *Plan only:* what would change with MOONS' 0.9° motors (MS17HA2P4150 / -M) |
 
 ## Building
 
