@@ -6,132 +6,62 @@ Advanced computerized telescope controller firmware for precision astronomical m
 
 > ⚠️ **Disclaimer:** Any hardware or software modification described in this repository is performed **entirely at your own risk**. Flashing custom firmware, changing DIP switch settings, swapping stepper drivers (e.g. TMC2209 → TMC5160), adjusting axis travel limits, motor currents, or any other parameter in `Config.h` may damage your mount, controller board, motors, telescope, or void your warranty. Neither the author of this fork nor the upstream OnStepX authors accept responsibility for damage, injury, or loss resulting from its use. Verify every setting against your own hardware before powering on.
 
-## Overview
+## At a glance
 
-OnStepX is a powerful open-source telescope control system designed by Howard Dutton. It provides comprehensive control for telescope mounts with support for multiple motor driver types including Step/Dir, ODrive, and Servo configurations.
+| | |
+|---|---|
+| Firmware | **OnStepX 10.27m** (upstream [hjd1964/OnStepX](https://github.com/hjd1964/OnStepX) commit `6f928aaf`) |
+| Controller | Juwei 17 board — ESP32 (OnStepX) + ESP8266 (WiFi web server), `PINMAP MaxESP3` |
+| Drivers | **TMC5160** over SPI on both axes (stock TMC2208/2209 replaced) |
+| Mount | German equatorial (`GEM`), preferred pier side `EAST` |
+| Connectivity | Bluetooth (`OnStepX`), USB, WiFi via Smart Web Server 2.09g |
+| Time | DS3231 real-time clock |
 
-## Configuration
+Key settings (full explanation in [docs/configuration.md](docs/configuration.md)):
 
-Configuration is primarily handled through the `Config.h` file. The most critical settings involve the two main axes that control the telescope mount.
+| Setting | RA (Axis 1) | DEC (Axis 2) |
+|---|---|---|
+| Steps per degree | 7163.4 | 7182.4 |
+| Microsteps tracking / goto | 32 / 8 | 32 / 8 |
+| Current hold / run / goto (mA, peak) | OFF (=350) / 700 / 1000 | OFF (=350) / 700 / 1000 |
+| Limits | −190° … +190° | −10° … +90° |
+| Driver status monitoring | ON | ON |
 
-**Hardware Upgrades:**
-- **TMC5160 Drivers**: Upgraded from TMC2209 to TMC5160 for faster slewing speeds and improved overall performance. The TMC5160 provides higher current capability and better thermal management during rapid GoTo operations.
+| Mount behaviour | |
+|---|---|
+| Slew speed / acceleration distance | 4 °/s / 6° |
+| Step signal | `PULSE` |
+| Meridian flips | automatic, routed through home |
+| Motors in standby | powered (hold position) |
+| Tracking at power-up | off |
 
-### AXIS1 - Right Ascension (RA) / Azimuth
+## Documentation
 
-AXIS1 controls the primary rotation axis. For equatorial mounts, this is the Right Ascension (RA) axis that tracks celestial objects. For Alt/Az mounts, this is the Azimuth axis.
+| Guide | What's in it |
+|---|---|
+| [Flashing both chips](docs/flashing.md) | Backup, build and flash OnStepX (ESP32) and the web server (ESP8266), DIP switches, troubleshooting |
+| [Configuration reference](docs/configuration.md) | Every customised `Config.h` setting and why: step signal, speed limits, acceleration, motor current, driver status, decay modes |
+| [Upgrading to 10.27](docs/upgrading-to-10.27.md) | Why 10.27m, what changed, what to write down before flashing (settings are reset) |
+| [Web server](docs/web-server.md) | Smart Web Server version, configuration, Advanced Configuration caveats |
+| [Hardware notes](docs/hardware.md) | Motors, gearing, drivers, pin usage, RA brake, sources |
 
-**Essential Configuration Parameters:**
+## Building
 
-```cpp
-#define AXIS1_DRIVER_MODEL        TMC5160
+1. Install [Arduino IDE 2](https://www.arduino.cc/en/software) and the **ESP32 board package by Espressif, version 2.0.x** (tested with 2.0.11). Do not use 3.x with OnStepX 10.27.
+2. Copy `OnStepX.ino`, `Config.h`, `Extended.config.h` and `src/` into a folder named **`OnStepX`** on a short path (e.g. `C:\OnStepX`). Arduino requires the folder name to match the `.ino`, and long Windows paths break the build.
+3. Open `OnStepX.ino`, select **Tools → Board → ESP32 Dev Module**, and verify. It should build without warnings at about 92 % of program storage.
+
+Or with `arduino-cli`:
+
+```powershell
+arduino-cli compile --fqbn esp32:esp32:esp32 C:\OnStepX
 ```
-Specifies the stepper motor driver model. Common options include TMC2209, TMC5160, TMC2130, DRV8825, A4988.
 
-```cpp
-#define AXIS1_STEPS_PER_DEGREE    7163.4
-```
-Critical calibration value calculated as:
-`(stepper_steps × micro_steps × gear_reduction) / 360.0`
-
-**Axis Travel Limits:**
-
-```cpp
-#define AXIS1_LIMIT_MIN           -200
-#define AXIS1_LIMIT_MAX            200
-```
-Extended beyond the default ±180° to allow additional travel past the meridian on the harmonic drive. The Juwei 17 has no mechanical hard stops on RA, so the extra ±20° of range provides more flexibility for tracking targets across the meridian before a flip is required.
-
-**Microstepping Configuration:**
-
-```cpp
-#define AXIS1_DRIVER_MICROSTEPS   32
-```
-Microstepping resolution during tracking. Higher values (16, 32, 64, 128, 256) provide smoother motion.
-
-```cpp
-#define AXIS1_DRIVER_MICROSTEPS_GOTO  8
-```
-Microstepping during slews. Lower values allow faster movement while maintaining torque; 8 gives smoother, quieter slews than 2 and still leaves plenty of step-rate headroom at 4°/s when combined with `STEP_WAVE_FORM PULSE`.
-
-**Current Settings (TMC Drivers):**
-
-```cpp
-#define AXIS1_DRIVER_IRUN         700
-```
-Running current in milliamps during tracking. Set based on motor specifications (typically 50-70% of motor rating).
-
-```cpp
-#define AXIS1_DRIVER_IGOTO        1000
-```
-Slew current in milliamps during GoTo operations. Can be higher for faster movements.
-
-```cpp
-#define AXIS1_DRIVER_IHOLD        OFF
-```
-Standstill current. OFF defaults to IRUN/2. Lower values reduce heat and power consumption.
-
-### AXIS2 - Declination (DEC) / Altitude
-
-AXIS2 controls the secondary rotation axis. For equatorial mounts, this is the Declination (DEC) axis. For Alt/Az mounts, this is the Altitude axis.
-
-**Essential Configuration Parameters:**
-
-```cpp
-#define AXIS2_DRIVER_MODEL        TMC5160
-```
-Motor driver model for the DEC/ALT axis. Should match or be compatible with AXIS1 driver.
-
-```cpp
-#define AXIS2_STEPS_PER_DEGREE    7182.4
-```
-Steps per degree calibration. May differ from AXIS1 if gear ratios are different.
-
-**Microstepping Configuration:**
-
-```cpp
-#define AXIS2_DRIVER_MICROSTEPS   32
-#define AXIS2_DRIVER_MICROSTEPS_GOTO  8
-```
-Same principles as AXIS1. DEC axis often uses identical settings.
-
-**Current Settings:**
-
-```cpp
-#define AXIS2_DRIVER_IRUN         700
-#define AXIS2_DRIVER_IGOTO        1000
-#define AXIS2_DRIVER_IHOLD        OFF
-```
-Current settings for DEC/ALT motor. DEC axis may require different current than RA depending on load balance.
-
-**Axis Travel Limits:**
-
-```cpp
-#define AXIS2_LIMIT_MIN            -10
-#define AXIS2_LIMIT_MAX             90
-```
-The lower DEC limit is restricted from the default `-90°` to `-10°` to prevent the OTA from swinging into the tripod/pier on the Juwei 17. The upper limit remains at `90°` (celestial pole).
-
-### Mount Behavior
-
-```cpp
-#define PIER_SIDE_PREFERRED_DEFAULT   EAST
-```
-Overrides the default `BEST` behavior. The mount now prefers the EAST pier side when a target is reachable from either side, giving more consistent startup orientation and predictable meridian-flip behavior for the Juwei 17.
-
-### Juwei 17 Mount Configuration
-
-This setup is configured as an **Equatorial Mount (GEM)**:
-- AXIS1: RA tracking axis with TMC5160 driver (7163.4 steps/degree), travel limits ±200°
-- AXIS2: DEC positioning axis with TMC5160 driver (7182.4 steps/degree), travel limits -10° to +90°
-- Mount type: `GEM`
-- Preferred pier side: `EAST`
-- Hardware: MaxESP3 controller board
-- Harmonic drive system provides exceptional precision and minimal backlash
+`src/plugins/Plugins.config.h` is part of this repository (all plugins off); the firmware does not build without it.
 
 ## Flashing the Firmware
 
-Before flashing, you must set the board's DIP switches into bootloader mode to allow programming over USB.
+Before flashing, you must set the board's DIP switches into bootloader mode to allow programming over USB. The full procedure for both chips, including backups and the web server, is in [docs/flashing.md](docs/flashing.md).
 
 ### DIP Switch Mapping
 - **Switches 1, 2, 3**: Control the ESP8266 (`1 = RX`, `2 = TX`, `3 = IO0`)
@@ -142,9 +72,11 @@ Before flashing, you must set the board's DIP switches into bootloader mode to a
 | Mode | Switch 1 | Switch 2 | Switch 3 | Switch 4 | Switch 5 | Switch 6 |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Normal Operation** | OFF | OFF | OFF | OFF | **ON** | **ON** |
-| **ESP32 Flashing** | OFF | OFF | OFF | **ON** | **ON** | **ON** |
+| **ESP32 Flashing** | OFF | OFF | OFF ¹ | **ON** | **ON** | **ON** |
 
-### Step-by-Step Flashing Procedure
+¹ If the ESP32 does not enter flash mode with switch 4 alone, also turn switch 3 on.
+
+### Step-by-Step Flashing Procedure (ESP32 / OnStepX)
 
 1. **Remove Board**: Take the controller board out of the mount enclosure.
 2. **Disconnect Motors**: Ensure the motors are **not connected** to the board during flashing.
@@ -154,47 +86,18 @@ Before flashing, you must set the board's DIP switches into bootloader mode to a
 6. **Flash Firmware**: Upload the compiled OnStepX firmware using **Arduino IDE** or **esptool**.
 7. **Restore Switches**: Once flashing is complete, turn off power, flip DIP switch **4 back to OFF**, reinstall the board, and reconnect your motors.
 
-## Getting Started
-
-1. Select your hardware pinmap in `Config.h`:
-```cpp
-#define PINMAP    MaxESP3
-```
-
-2. Configure AXIS1 and AXIS2 driver models and steps per degree
-
-3. Set mount type:
-```cpp
-#define MOUNT_TYPE    GEM
-```
-
-4. Configure time/location source if available:
-```cpp
-#define TIME_LOCATION_SOURCE    DS3231
-```
-
-5. Flash the firmware to your controller following the instructions above.
-
-6. Perform initial alignment and calibration
-
-## Documentation
-
-Comprehensive documentation available at the [OnStep Wiki](https://groups.io/g/onstep/wiki/home):
-- Hardware builds and PCB designs
-- Detailed configuration guides
-- Troubleshooting and support
-- Wiring diagrams
-
-## Support
-
-- **Discussion Group**: [OnStep Groups.io](https://groups.io/g/onstep/)
-- **GitHub**: [OnStep Repository](https://github.com/hjd1964/OnStep)
+> **Upgrading from 10.22?** The first boot of 10.27 resets all settings stored on the mount (site, park, limits, backlash, rates). Write them down first — see [docs/upgrading-to-10.27.md](docs/upgrading-to-10.27.md). The web server on the ESP8266 should be updated to Smart Web Server 2.09g to get the per-axis settings page.
 
 ## Version
 
-Current firmware: **v10.27m** (upstream [hjd1964/OnStepX](https://github.com/hjd1964/OnStepX) commit `6f928aaf`)
+Current firmware: **v10.27m** (upstream [hjd1964/OnStepX](https://github.com/hjd1964/OnStepX) commit `6f928aaf`, 2026-02-25).
 
-> Upgrading from 10.22: the first boot of 10.27 resets all settings stored on the mount (site, park, limits, backlash, rates). Note them down before flashing. The Bluetooth name is set by `HOST_NAME` (kept as `"OnStepX"`). The web server on the ESP8266 should be Smart Web Server 2.09 or newer.
+## Support
+
+- **Discussion Group**: [OnStep Groups.io](https://onstep.groups.io/g/main)
+- **OnStepX Wiki**: [onstep.groups.io wiki](https://onstep.groups.io/g/main/wiki)
+- **OnStepX source**: [hjd1964/OnStepX](https://github.com/hjd1964/OnStepX)
+- **Juwei 17 owners**: [Cloudy Nights thread](https://www.cloudynights.com/forums/topic/918425-juwei-17-mounts-on-aliexpress/)
 
 ## License
 
@@ -204,7 +107,7 @@ See the `LICENSE` file for full license text.
 
 ## Author
 
-**Howard Dutton**
+**Howard Dutton** — author of OnStepX and the Smart Web Server
 - Website: [Stellar Journey](http://www.stellarjourney.com)
 - Email: hjd1964@gmail.com
 
