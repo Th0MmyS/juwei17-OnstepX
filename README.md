@@ -45,6 +45,7 @@ Key settings (full explanation in [docs/configuration.md](docs/configuration.md)
 | [Web server](docs/web-server.md) | Smart Web Server version, configuration, Advanced Configuration caveats |
 | [Hardware notes](docs/hardware.md) | Motors, gearing, drivers, pin usage, RA brake, sources |
 | [Motor upgrade plan](docs/motor-upgrade-plan.md) | *Plan only:* what would change with MOONS' 0.9° motors (MS17HA2P4150 / -M) |
+| [Future plans](docs/future_plans.md) | Checklist of improvements: settings, cheap hardware, bigger projects |
 
 ## Building
 
