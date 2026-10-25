@@ -2,7 +2,7 @@
 
 Ideas for improving the Juwei 17, roughly in order of value for money. Tick items off as they are done.
 
-**Suggested order:** 1 → 2 (+ FRAM, if bought before flashing) → 3 → 4 → 5.
+**Suggested order:** 1 → 2 (+ FRAM, if bought before flashing) → 3 → 4.
 
 ## Free: settings and setup
 
@@ -18,17 +18,11 @@ Ideas for improving the Juwei 17, roughly in order of value for money. Tick item
 - [ ] **4. Measure and compensate DEC backlash.**
   Owners see DEC backlash in PHD2's Guiding Assistant. Set OnStepX's backlash value (app / web UI) or use PHD2's DEC backlash compensation. `GOTO_OFFSET 0.25` already makes gotos approach from the same direction.
 
-- [ ] **5. Enable PHD2's "Predictive PEC" guide algorithm for RA.**
+- [x] **5. Enable PHD2's "Predictive PEC" guide algorithm for RA.** *Done.*
   Harmonic drives have a repeating periodic error in RA. Predictive PEC learns and cancels it while guiding — no hardware needed.
 
-- [ ] **6. Set limits and positions in the app.**
-  Horizon, overhead and meridian limits; then save the park and home positions. Prevents collisions, which matters more now that meridian flips are automatic.
-
-- [ ] **7. Refraction-compensated tracking.**
-  `TRACK_COMPENSATION_DEFAULT REFRACTION`. Better tracking near the horizon; mostly useful for unguided and planetary imaging.
-
-- [ ] **8. Remember the pointing model** — only if the mount stays on a fixed pier.
-  `ALIGN_MODEL_MEMORY ON` keeps the alignment model across power cycles.
+- [x] **6. Set limits and positions in the app.** *Done.*
+  Horizon, overhead and meridian limits; then save the park and home positions. After the 10.27 flash these need re-entering, because the first boot resets stored settings.
 
 ## Cheap hardware (under ~$20)
 
