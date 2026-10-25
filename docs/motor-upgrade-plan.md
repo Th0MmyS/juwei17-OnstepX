@@ -49,8 +49,8 @@ A balanced scope needs far less than this, so **4 °/s at 12 V is comfortable an
 | `AXIS1_STEPS_PER_DEGREE` | 7163.4 | **14326.8**, then recalibrate | 400 instead of 200 steps/rev |
 | `AXIS2_STEPS_PER_DEGREE` | 7182.4 | **14364.8**, then recalibrate | same |
 | `AXISn_DRIVER_MICROSTEPS` / `_GOTO` | 32 / 8 | 32 / 8 (keep) | Speed cap drops from ~22 to ~11 °/s — still well above 4 °/s |
-| `AXISn_DRIVER_IRUN` | 700 | **1100** | 766 mA RMS, 51 % of 1.5 A |
-| `AXISn_DRIVER_IGOTO` | 1000 | **1600** | 1149 mA RMS, 77 % of 1.5 A |
+| `AXISn_DRIVER_IRUN` | 1000 | **1100** | 766 mA RMS, 51 % of 1.5 A |
+| `AXISn_DRIVER_IGOTO` | 1300 | **1600** | 1149 mA RMS, 77 % of 1.5 A |
 | `AXISn_DRIVER_IHOLD` | OFF | OFF | = IRUN/2 = 550 → 383 mA RMS |
 | `AXIS1_REVERSE` / `AXIS2_REVERSE` | ON / OFF | check after the first move | New motors may turn the other way |
 

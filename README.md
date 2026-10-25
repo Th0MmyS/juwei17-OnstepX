@@ -23,7 +23,7 @@ Key settings (full explanation in [docs/configuration.md](docs/configuration.md)
 |---|---|---|
 | Steps per degree | 7163.4 | 7182.4 |
 | Microsteps tracking / goto | 32 / 8 | 32 / 8 |
-| Current hold / run / goto (mA, peak) | OFF (=350) / 700 / 1000 | OFF (=350) / 700 / 1000 |
+| Current hold / run / goto (mA, peak) | OFF (=500) / 1000 / 1300 | OFF (=500) / 1000 / 1300 |
 | Limits | −190° … +190° | −10° … +90° |
 | Driver status monitoring | ON | ON |
 

@@ -9,8 +9,8 @@ Ideas for improving the Juwei 17, roughly in order of value for money. Tick item
 - [ ] **1. Flash OnStepX 10.27m and Smart Web Server 2.09g, then run the driver-status test.**
   Already prepared on this branch. Unlocks the per-axis settings page in the web UI and hardware-fault protection. Procedure: [flashing.md](flashing.md). If the mount reports a hardware fault right after flashing, set `AXIS1_DRIVER_STATUS` / `AXIS2_DRIVER_STATUS` to `OFF` ([configuration.md](configuration.md#driver-status)).
 
-- [ ] **2. Raise the motor currents.**
-  `AXISn_DRIVER_IRUN 1000` and `AXISn_DRIVER_IGOTO 1300` (now 700 / 1000, which is only ~480 / 670 mA RMS). Owners settled around 900 mA; this gives more torque in reserve for gotos while staying below the motors' 1.3 A rating. Check driver and motor temperature after a few slews. Details: [configuration.md](configuration.md#motor-current).
+- [x] **2. Raise the motor currents.** *Done in `Config.h`; check temperatures after the first slews.*
+  `AXISn_DRIVER_IRUN 1000` and `AXISn_DRIVER_IGOTO 1300` (was 700 / 1000, only ~480 / 670 mA RMS; now ~670 / 960 mA RMS). Owners settled around 900 mA; this gives more torque in reserve for gotos while staying below the motors' 1.3 A rating. Details: [configuration.md](configuration.md#motor-current).
 
 - [ ] **3. Calibrate steps per degree with plate solving.**
   Solve, make a long goto (~90°), solve again, and correct `AXIS1/2_STEPS_PER_DEGREE`. One owner found the harmonic drive is 100:1 rather than the 101:1 the factory firmware assumes, which fixed gotos needing small final corrections ([hardware.md](hardware.md#mechanics)).

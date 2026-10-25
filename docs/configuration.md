@@ -21,8 +21,8 @@ This page explains every setting in [`Config.h`](../Config.h) that differs from 
 | `AXIS2_LIMIT_MIN` | `-10` | `-90` | Keeps the telescope from swinging into the tripod/pier |
 | `AXIS1/2_DRIVER_MICROSTEPS` | `32` | `OFF` | Tracking resolution |
 | `AXIS1/2_DRIVER_MICROSTEPS_GOTO` | `8` | `OFF` | Smoother, quieter slews than 2 — see [Step signal](#step-signal-and-slew-speed) |
-| `AXIS1/2_DRIVER_IRUN` | `700` | `OFF` | Tracking current — see [Motor current](#motor-current) |
-| `AXIS1/2_DRIVER_IGOTO` | `1000` | `OFF` | Slew current |
+| `AXIS1/2_DRIVER_IRUN` | `1000` | `OFF` | Tracking current — see [Motor current](#motor-current) |
+| `AXIS1/2_DRIVER_IGOTO` | `1300` | `OFF` | Slew current |
 | `AXIS1/2_DRIVER_STATUS` | `ON` | `OFF` | Hardware fault monitoring — see [Driver status](#driver-status) |
 | `MOUNT_ENABLE_IN_STANDBY` | `ON` | `OFF` | Motors hold the axes while idle |
 | `STATUS_MOUNT_LED` | `ON` | `OFF` | Mount activity LED |
@@ -82,21 +82,21 @@ The stock motors are Sumtor **42HS4013A4** (RA) and **42HS4013B4** (DEC): NEMA 1
 
 | Setting | Actual peak | Actual RMS | % of 1.3 A |
 |---|---|---|---|
-| `IHOLD OFF` (= IRUN ÷ 2 = 350) | 406 mA | 287 mA | 22 % |
-| `IRUN 700` | 677 mA | 479 mA | 37 % |
-| `IGOTO 1000` | 948 mA | 670 mA | 52 % |
-| *`IRUN 1000` (candidate)* | 948 mA | 670 mA | 52 % |
-| *`IGOTO 1300` (candidate)* | 1354 mA | 958 mA | 74 % |
+| `IHOLD OFF` (= IRUN ÷ 2 = 500) | 542 mA | 383 mA | 29 % |
+| **`IRUN 1000`** | 948 mA | 670 mA | 52 % |
+| **`IGOTO 1300`** | 1354 mA | 958 mA | 74 % |
+| *previous `IRUN 700`* | 677 mA | 479 mA | 37 % |
+| *previous `IGOTO 1000`* | 948 mA | 670 mA | 52 % |
 
 What other Juwei 17 owners use (Cloudy Nights thread, see [hardware.md](hardware.md#sources)):
 
 - Stock TMC2209 drivers are set with a trimmer: early units shipped at ~350–400 mA, newer ones at ~750–850 mA; most owners raise them to **~900 mA**.
-- TMC5160 swap on the stock board: `IRUN 700 / IGOTO 1000` (the origin of our values).
+- TMC5160 swap on the stock board: `IRUN 700 / IGOTO 1000` (where our earlier values came from).
 - TMC2209 on a FYSETC E4 board: `IRUN 1100`, `IGOTO` = `IRUN`.
 
-`IRUN 1000 / IGOTO 1300` would put us in line with the ~900 mA owners settled on while keeping headroom below the 1.3 A rating. It is **not applied yet**. If you raise currents, check driver and motor temperature after a few slews — the board sits in a closed housing.
+The current `IRUN 1000 / IGOTO 1300` is in line with the ~900 mA owners settled on and stays well below the motors' 1.3 A rating: about half of it while tracking and three quarters during gotos. The TMC5160 modules (~3 A RMS) are far from their limit. After flashing, check driver and motor temperature after a few slews — the board sits in a closed housing. Warm is normal; too hot to keep a finger on is not.
 
-These numbers assume 0.075 Ω sense resistors (the OnStepX default, used on BTT TMC5160 Pro modules). Other modules shift them; `AXISn_DRIVER_RSENSE` can be set if needed.
+These numbers assume 0.075 Ω sense resistors (the OnStepX default, used on BTT TMC5160 Pro modules). You can check: the sense resistors on the driver module are marked **R075**. With a smaller value (e.g. R050) the real current would be 1.5× higher — in that case set `AXISn_DRIVER_RSENSE` to the real value.
 
 ## Driver status
 
