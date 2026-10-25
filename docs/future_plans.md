@@ -31,26 +31,14 @@ Ideas for improving the Juwei 17, roughly in order of value for money. Tick item
 
 - [ ] **Heatsinks on the TMC5160 drivers.** The board sits in a closed housing and has none from the factory.
 
-- [ ] **WiFi antenna mod.** The stock board has no antenna; range is a few metres.
-
 - [ ] **Mechanical check.** Belt tension; owners fixed altitude wobble by partially releasing the base plate and tightening the altitude bolts.
-
-- [ ] **Good 12 V supply, ≥ 3 A.** Brown-outs cause resets and lost position.
 
 ## Bigger projects
 
-- [ ] **RA brake engages when parked.** `PARK_STATUS` output on GPIO25 driving a logic-level MOSFET; design in [hardware.md](hardware.md#idea-engage-the-brake-when-parked).
-
-- [ ] **Home sensors** for automatic homing after a power loss. On the stock board the home-switch pins are shared with the DS3231 clock's I2C bus.
-
-- [ ] **PEC index sensor** to use OnStepX's own periodic-error correction (needs `PEC_STEPS_PER_WORM_ROTATION` and `PEC_SENSE`).
-
 - [ ] **MOONS' 0.9° motors** (MS17HA2P4150-M / MS17HA2P4150). Full plan: [motor-upgrade-plan.md](motor-upgrade-plan.md).
-
-- [ ] **FYSETC E4 controller board** — only worth it for the extras: reliable WiFi with an external antenna, built-in MOSFET outputs (brake on park, dew heaters), inputs for home/limit/PEC sensors, 12–24 V supply. Costs: weaker TMC2209 drivers than the current TMC5160s, no DS3231 clock, WiFi *or* Bluetooth (not both), and mounting/wiring work.
 
 - [ ] **OnStepX 10.29+** once it has a few patch releases. Brings tracking/pulse-guide rate fixes and ESP32 core 3.x support; costs another settings reset and removing `LIMIT_STRICT` from `Config.h` ([upgrading-to-10.27.md](upgrading-to-10.27.md)).
 
 ## Sources
 
-Owner reports from the Cloudy Nights [Juwei-17 thread](https://www.cloudynights.com/forums/topic/918425-juwei-17-mounts-on-aliexpress/) (currents p.42, harmonic ratio and E4 p.67, PEC/home sensors p.43–44, altitude wobble fix p.66) and the OnStepX 10.27m source in this repository.
+Owner reports from the Cloudy Nights [Juwei-17 thread](https://www.cloudynights.com/forums/topic/918425-juwei-17-mounts-on-aliexpress/) (currents p.42, harmonic ratio p.67, MOONS' motor swap p.43–44, altitude wobble fix p.66) and the OnStepX 10.27m source in this repository.
