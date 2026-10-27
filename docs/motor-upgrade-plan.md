@@ -1,6 +1,6 @@
-# Plan: upgrading to MOONS' 0.9° motors
+# Upgrading to MOONS' 0.9° motors
 
-> **Status: plan only — nothing here is applied yet.** This lists what would change if the stock motors are replaced with MOONS' **MS17HA2P4150-M** (RA) and **MS17HA2P4150** (DEC).
+> **Status: configuration applied** (`Config.h`: steps/degree × 2, `IRUN 1100` / `IGOTO 1600`). The [hardware checklist](#hardware-checklist) and [test procedure](#procedure-after-fitting) below are still to do. The stock motors are replaced with MOONS' **MS17HA2P4150-M** (RA) and **MS17HA2P4150** (DEC).
 
 ## The motors
 
@@ -44,7 +44,7 @@ A balanced scope needs far less than this, so **4 °/s at 12 V is comfortable an
 
 ## Configuration changes
 
-| Setting | Now | With MOONS' | Why |
+| Setting | Stock motors | MOONS' (applied) | Why |
 |---|---|---|---|
 | `AXIS1_STEPS_PER_DEGREE` | 7163.4 | **14326.8**, then recalibrate | 400 instead of 200 steps/rev |
 | `AXIS2_STEPS_PER_DEGREE` | 7182.4 | **14364.8**, then recalibrate | same |
@@ -60,7 +60,7 @@ Microstep alternatives:
 
 | Tracking / goto microsteps | Steps/degree (RA) | Speed cap (`PULSE`) | Tracking microstep |
 |---|---|---|---|
-| 16 / 4 | 7163.4 (same as now) | ~22 °/s | 0.50″ |
+| 16 / 4 | 7163.4 (same as the stock motors at 32) | ~22 °/s | 0.50″ |
 | **32 / 8 (recommended)** | **14326.8** | **~11 °/s** | **0.25″** |
 | 32 / 4 | 14326.8 | ~22 °/s | 0.25″ |
 | 64 / 8 | 28653.6 | ~11 °/s | 0.13″ |
@@ -80,12 +80,12 @@ If *Advanced Configuration* is enabled in the web server, make these changes the
 ## Procedure after fitting
 
 1. **Back up first**: both chips ([flashing.md](flashing.md#step-1--back-up-both-chips)) and any object catalogs — changing steps/degree can corrupt the stored library.
-2. Update `Config.h` as above, build and flash ([flashing.md](flashing.md)).
+2. `Config.h` is already updated — build and flash ([flashing.md](flashing.md)). Doing this together with the 10.27 upgrade means the stored settings are reset only once.
 3. Power on with the motors connected and still (the drivers calibrate StealthChop at boot).
 4. Move each axis slowly by hand control; fix direction with `AXISn_REVERSE`.
 5. Test gotos at 2 °/s, then 4 °/s, with the scope mounted and balanced. Watch for stalls and driver-status faults.
 6. Track for 30 minutes and do several gotos; check motor and driver temperature.
-7. Calibrate steps/degree: plate-solve before and after a long goto (e.g. 90°) and correct the value. This is also the moment to settle the 100:1 vs 101:1 harmonic ratio question ([hardware.md](hardware.md#mechanics)).
+7. Calibrate steps/degree with a plate-solved goto ([future_plans.md](future_plans.md), item 3). This also settles the 400:1 vs 404:1 question ([hardware.md](hardware.md#mechanics)).
 8. Redo home and park positions, alignment, and PHD2 calibration.
 
 ## Sources

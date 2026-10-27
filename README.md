@@ -13,6 +13,7 @@ Advanced computerized telescope controller firmware for precision astronomical m
 | Firmware | **OnStepX 10.27m** (upstream [hjd1964/OnStepX](https://github.com/hjd1964/OnStepX) commit `6f928aaf`) |
 | Controller | Juwei 17 board — ESP32 (OnStepX) + ESP8266 (WiFi web server), `PINMAP MaxESP3` |
 | Drivers | **TMC5160** over SPI on both axes (stock TMC2208/2209 replaced) |
+| Motors | **MOONS' 0.9°** MS17HA2P4150-M (RA) / MS17HA2P4150 (DEC), 1.5 A (stock Sumtor 1.8° motors replaced) |
 | Mount | German equatorial (`GEM`), preferred pier side `EAST` |
 | Connectivity | Bluetooth (`OnStepX`), USB, WiFi via Smart Web Server 2.09g |
 | Time | DS3231 real-time clock |
@@ -21,9 +22,9 @@ Key settings (full explanation in [docs/configuration.md](docs/configuration.md)
 
 | Setting | RA (Axis 1) | DEC (Axis 2) |
 |---|---|---|
-| Steps per degree | 7163.4 | 7182.4 |
+| Steps per degree | 14326.8 | 14364.8 |
 | Microsteps tracking / goto | 32 / 8 | 32 / 8 |
-| Current hold / run / goto (mA, peak) | OFF (=500) / 1000 / 1300 | OFF (=500) / 1000 / 1300 |
+| Current hold / run / goto (mA, peak) | OFF (=550) / 1100 / 1600 | OFF (=550) / 1100 / 1600 |
 | Limits | −190° … +190° | −10° … +90° |
 | Driver status monitoring | ON | ON |
 
@@ -45,7 +46,7 @@ Key settings (full explanation in [docs/configuration.md](docs/configuration.md)
 | [Upgrading to 10.27](docs/upgrading-to-10.27.md) | Why 10.27m, what changed, what to write down before flashing (settings are reset) |
 | [Web server](docs/web-server.md) | Smart Web Server version, configuration, Advanced Configuration caveats |
 | [Hardware notes](docs/hardware.md) | Motors, gearing, drivers, pin usage, RA brake, sources |
-| [Motor upgrade plan](docs/motor-upgrade-plan.md) | *Plan only:* what would change with MOONS' 0.9° motors (MS17HA2P4150 / -M) |
+| [Motor upgrade](docs/motor-upgrade-plan.md) | MOONS' 0.9° motors (MS17HA2P4150 / -M): specs, settings, install and test checklist |
 | [Future plans](docs/future_plans.md) | Checklist of improvements: settings, cheap hardware, bigger projects |
 
 ## Building

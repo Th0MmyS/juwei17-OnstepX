@@ -14,15 +14,15 @@ This page explains every setting in [`Config.h`](../Config.h) that differs from 
 | `STEP_WAVE_FORM` | `PULSE` | `SQUARE` | More step-rate headroom, half the interrupts — see [Step signal](#step-signal-and-slew-speed) |
 | `TIME_LOCATION_SOURCE` | `DS3231` | `OFF` | On-board real-time clock |
 | `AXIS1/2_DRIVER_MODEL` | `TMC5160` | `OFF` | Stock TMC2208/2209 drivers replaced, see [hardware.md](hardware.md) |
-| `AXIS1_STEPS_PER_DEGREE` | `7163.4` | `12800` | Calibrated for this mount |
-| `AXIS2_STEPS_PER_DEGREE` | `7182.4` | `12800` | ≈ 200 steps × 32 µsteps × 404 ÷ 360 |
+| `AXIS1_STEPS_PER_DEGREE` | `14326.8` | `12800` | Previous value (7163.4) × 2 for the 400-step MOONS' motors; to be confirmed by plate solving |
+| `AXIS2_STEPS_PER_DEGREE` | `14364.8` | `12800` | ≈ 400 steps × 32 µsteps × 404 ÷ 360 |
 | `AXIS1_REVERSE` | `ON` | `OFF` | Matches the motor wiring |
 | `AXIS1_LIMIT_MIN / MAX` | `-190 / 190` | `-180 / 180` | Extra tracking past the meridian; RA has no mechanical hard stop |
 | `AXIS2_LIMIT_MIN` | `-10` | `-90` | Keeps the telescope from swinging into the tripod/pier |
 | `AXIS1/2_DRIVER_MICROSTEPS` | `32` | `OFF` | Tracking resolution |
 | `AXIS1/2_DRIVER_MICROSTEPS_GOTO` | `8` | `OFF` | Smoother, quieter slews than 2 — see [Step signal](#step-signal-and-slew-speed) |
-| `AXIS1/2_DRIVER_IRUN` | `1000` | `OFF` | Tracking current — see [Motor current](#motor-current) |
-| `AXIS1/2_DRIVER_IGOTO` | `1300` | `OFF` | Slew current |
+| `AXIS1/2_DRIVER_IRUN` | `1100` | `OFF` | Tracking current — see [Motor current](#motor-current) |
+| `AXIS1/2_DRIVER_IGOTO` | `1600` | `OFF` | Slew current |
 | `AXIS1/2_DRIVER_STATUS` | `ON` | `OFF` | Hardware fault monitoring — see [Driver status](#driver-status) |
 | `MOUNT_ENABLE_IN_STANDBY` | `ON` | `OFF` | Motors hold the axes while idle |
 | `MOUNT_DISABLE_WHEN_PARKED` | `ON` | `OFF` (added in this repo) | Motors off while parked, like the factory firmware — see [Mount behaviour](#mount-behaviour) |
@@ -45,17 +45,17 @@ Everything else is at the 10.27m default, including the settings discussed in [L
 - **`SQUARE`** — the step timer fires twice per step (pin high, then low), giving wide 50 % duty pulses. Most robust signal, but twice the interrupts.
 - **`PULSE`** — the timer fires once per step and the pin drops for only ~300 ns between steps. The firmware allows a step rate about 1.6× faster ([Goto.cpp:711](../src/telescope/mount/goto/Goto.cpp)). TMC drivers need ≥ 103 ns, so this is safe; the drivers sit on the same board with short traces.
 
-On ESP32 the fastest step period is 40 µs in `SQUARE` and 25 µs in `PULSE` ([ESP32Libraries2.h](../src/HAL/esp/ESP32Libraries2.h)). That budget is shared across the microsteps skipped during a slew (32 tracking ÷ goto microsteps), so the speed cap depends on `MICROSTEPS_GOTO`:
+On ESP32 the fastest step period is 40 µs in `SQUARE` and 25 µs in `PULSE` ([ESP32Libraries2.h](../src/HAL/esp/ESP32Libraries2.h)). That budget is shared across the microsteps skipped during a slew (32 tracking ÷ goto microsteps), so the speed cap depends on `MICROSTEPS_GOTO` — and on steps per degree, which doubled with the 0.9° MOONS' motors:
 
 | Goto microsteps | Max slew, `SQUARE` | Max slew, `PULSE` |
 |---|---|---|
-| 2 | ~56 °/s | ~89 °/s |
-| 4 | ~28 °/s | ~45 °/s |
-| **8 (ours)** | ~14 °/s | **~22 °/s** |
-| 16 | ~7 °/s | ~11 °/s |
-| 32 (no switching) | ~3.5 °/s | ~5.6 °/s |
+| 2 | ~28 °/s | ~45 °/s |
+| 4 | ~14 °/s | ~22 °/s |
+| **8 (ours)** | ~7 °/s | **~11 °/s** |
+| 16 | ~3.5 °/s | ~5.6 °/s |
+| 32 (no switching) | ~1.7 °/s | ~2.8 °/s |
 
-At 4 °/s we use well under a fifth of the available step rate. If a desired rate exceeds the cap, the firmware silently drops the default rate to half the cap ([Goto.cpp](../src/telescope/mount/goto/Goto.cpp), `usPerStepLowerLimit`).
+At 4 °/s we use about a third of the available step rate. (With the stock 1.8° motors every value was twice as high.) If a desired rate exceeds the cap, the firmware silently drops the default rate to half the cap ([Goto.cpp](../src/telescope/mount/goto/Goto.cpp), `usPerStepLowerLimit`).
 
 ### Acceleration
 
@@ -73,21 +73,21 @@ OnStepX accelerates at **a = v² ÷ (2 × distance)** ([Goto.cpp:693](../src/tel
 - Homing, parking and meridian flips run at the slew rate.
 - The rate can be changed at runtime from 50 % to 200 % (**2–8 °/s**). `SLEW_RATE_MEMORY` is `OFF`, so it resets to 4 °/s at every boot.
 
-We tested the idea of 6 °/s and went back to 4 °/s: at 6 °/s emergency braking becomes 9 °/s² and the stock motors have less torque in reserve.
+We tested the idea of 6 °/s and went back to 4 °/s: at 6 °/s emergency braking becomes 9 °/s² and the motors have less torque in reserve (the 0.9° MOONS' motors give ~0.11 N·m at 4 °/s but only ~0.07 N·m at 6 °/s on 12 V — see [motor-upgrade-plan.md](motor-upgrade-plan.md#speed-and-torque-at-12-v)).
 
 ## Motor current
 
-The stock motors are Sumtor **42HS4013A4** (RA) and **42HS4013B4** (DEC): NEMA 17, 1.8°, rated **1.3 A**.
+The motors are MOONS' **MS17HA2P4150-M** (RA) and **MS17HA2P4150** (DEC): NEMA 17, 0.9°, rated **1.5 A** (they replaced the stock Sumtor 42HS4013A4/B4, 1.8°, 1.3 A).
 
 **OnStepX treats `IRUN` / `IHOLD` / `IGOTO` as *peak* current**, not RMS (the TMCStepper path even multiplies by 0.7071, e.g. [Tmc2160.h:49](../src/lib/axis/motor/stepDir/tmc/tmcStepper/tmc2160/Tmc2160.h)). With the default 0.075 Ω sense resistors the TMC5160 sets current in 32 coarse steps of ~135 mA peak, and GLOBALSCALER is never used ([TmcSPI.cpp:37](../src/lib/axis/motor/stepDir/tmc/legacy/TmcSPI.cpp)). What the motors actually get:
 
-| Setting | Actual peak | Actual RMS | % of 1.3 A |
+| Setting | Actual peak | Actual RMS | % of 1.5 A (MOONS') |
 |---|---|---|---|
-| `IHOLD OFF` (= IRUN ÷ 2 = 500) | 542 mA | 383 mA | 29 % |
-| **`IRUN 1000`** | 948 mA | 670 mA | 52 % |
-| **`IGOTO 1300`** | 1354 mA | 958 mA | 74 % |
-| *previous `IRUN 700`* | 677 mA | 479 mA | 37 % |
-| *previous `IGOTO 1000`* | 948 mA | 670 mA | 52 % |
+| `IHOLD OFF` (= IRUN ÷ 2 = 550) | 542 mA | 383 mA | 26 % |
+| **`IRUN 1100`** | 1083 mA | 766 mA | 51 % |
+| **`IGOTO 1600`** | 1625 mA | 1149 mA | 77 % |
+| *previous `IRUN 1000` (stock motors)* | 948 mA | 670 mA | 52 % of 1.3 A |
+| *previous `IGOTO 1300` (stock motors)* | 1354 mA | 958 mA | 74 % of 1.3 A |
 
 What other Juwei 17 owners use (Cloudy Nights thread, see [hardware.md](hardware.md#sources)):
 
@@ -95,7 +95,7 @@ What other Juwei 17 owners use (Cloudy Nights thread, see [hardware.md](hardware
 - TMC5160 swap on the stock board: `IRUN 700 / IGOTO 1000` (where our earlier values came from).
 - TMC2209 on a FYSETC E4 board: `IRUN 1100`, `IGOTO` = `IRUN`.
 
-The current `IRUN 1000 / IGOTO 1300` is in line with the ~900 mA owners settled on and stays well below the motors' 1.3 A rating: about half of it while tracking and three quarters during gotos. The TMC5160 modules (~3 A RMS) are far from their limit. After flashing, check driver and motor temperature after a few slews — the board sits in a closed housing. Warm is normal; too hot to keep a finger on is not.
+The current `IRUN 1100 / IGOTO 1600` stays well below the MOONS' motors' 1.5 A rating: about half of it while tracking and three quarters during gotos. The 0.9° motors lose torque at speed sooner than the old 1.8° ones, so the goto current is a bit higher than the ~900 mA owners used with stock motors. The TMC5160 modules (~3 A RMS) are far from their limit. After flashing, check driver and motor temperature after a few slews — the board sits in a closed housing. Warm is normal; too hot to keep a finger on is not.
 
 These numbers assume 0.075 Ω sense resistors (the OnStepX default, used on BTT TMC5160 Pro modules). You can check: the sense resistors on the driver module are marked **R075**. With a smaller value (e.g. R050) the real current would be 1.5× higher — in that case set `AXISn_DRIVER_RSENSE` to the real value.
 
