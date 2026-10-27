@@ -12,7 +12,16 @@ Facts about the mount and its controller that the configuration depends on. Most
 ## RA brake
 
 - The RA motor has an electromagnetic brake that is **released while 12 V is present and engages when power is lost** (you can hear it click when you unplug the mount).
-- It is wired straight to 12 V, so OnStepX cannot control it: **parking does not engage the brake.**
+- Owner correspondence says it is wired straight to 12 V, in which case firmware cannot control it and **parking does not engage the brake**. Not yet measured on this mount.
+
+### Factory firmware: motors off when parked
+
+The factory firmware (OnStep 4.24s on the ESP32, with the stock TMC2209 drivers in standalone mode) powers the motors down when a park completes by driving the shared enable pin **GPIO12 HIGH**, and drives it LOW again on unpark. That is the click heard on park and unpark. It drives no other pin, so parking engages the brake only if the board feeds the brake from the enable line.
+
+`MOUNT_DISABLE_WHEN_PARKED ON` reproduces this in OnStepX ([configuration.md](configuration.md#mount-behaviour)). To find out whether it also engages the brake, measure the voltage across the brake coil unparked and then parked:
+
+- about 12 V both times: the brake is wired straight to 12 V. Parking only switches the motors off, and RA is then held by the gear train alone.
+- about 0 V when parked: the brake follows GPIO12, and parking engages it.
 
 ### Idea: engage the brake when parked
 

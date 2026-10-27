@@ -25,6 +25,7 @@ This page explains every setting in [`Config.h`](../Config.h) that differs from 
 | `AXIS1/2_DRIVER_IGOTO` | `1300` | `OFF` | Slew current |
 | `AXIS1/2_DRIVER_STATUS` | `ON` | `OFF` | Hardware fault monitoring — see [Driver status](#driver-status) |
 | `MOUNT_ENABLE_IN_STANDBY` | `ON` | `OFF` | Motors hold the axes while idle |
+| `MOUNT_DISABLE_WHEN_PARKED` | `ON` | `OFF` (added in this repo) | Motors off while parked, like the factory firmware — see [Mount behaviour](#mount-behaviour) |
 | `STATUS_MOUNT_LED` | `ON` | `OFF` | Mount activity LED |
 | `ST4_INTERFACE` | `ON` | `OFF` | ST4 guide port / hand controller |
 | `ST4_HAND_CONTROL_FOCUSER` | `OFF` | `ON` | No focuser fitted |
@@ -128,7 +129,8 @@ The MLAstro SAL-33 forces StealthChop for gotos too; that works for them at 2 °
 
 ## Mount behaviour
 
-- **`MOUNT_ENABLE_IN_STANDBY ON`** — motor drivers stay energised at hold current after boot, after parking and after a home reset ([Mount.cpp:68](../src/telescope/mount/Mount.cpp), [Park.cpp:201](../src/telescope/mount/park/Park.cpp)). With `TRACK_AUTOSTART OFF` the mount otherwise sits unpowered until the first goto, held only by the gear train — and the RA brake releases as soon as the board has power.
+- **`MOUNT_ENABLE_IN_STANDBY ON`** — motor drivers stay energised at hold current after boot, after parking and after a home reset ([Mount.cpp:68](../src/telescope/mount/Mount.cpp), [Park.cpp:201](../src/telescope/mount/park/Park.cpp)). With `TRACK_AUTOSTART OFF` the mount otherwise sits unpowered until the first goto, held only by the gear train — and the RA brake releases as soon as the board has power. While parked, `MOUNT_DISABLE_WHEN_PARKED` takes over (next item).
+- **`MOUNT_DISABLE_WHEN_PARKED ON`** (added in this repo, not upstream OnStepX) — the motors are powered down while parked, and the shared enable pin GPIO12 follows motor power (HIGH = off), as the factory firmware did. Park completion, unpark, `:Te#`, gotos, guiding, home reset and motor faults all switch power through `Mount::enable()`, which refuses to power up while parked and then drives GPIO12 ([Mount.cpp](../src/telescope/mount/Mount.cpp)). At boot GPIO12 stays LOW through the TMC5160 calibration, then goes HIGH if the mount is parked. A failed park leaves the motors holding. Set `OFF` to get stock OnStepX behaviour back. Whether this also engages the RA brake depends on its wiring — see [hardware.md](hardware.md#ra-brake).
 - **`GOTO_OFFSET 0.25`** (default) — every goto first aims 0.25° short in both axes, waits, then makes a short final move, so the last approach is always from the same direction and any slack (the belt stage in front of the harmonic drive, reported DEC backlash) is taken up consistently ([Goto.cpp:129](../src/telescope/mount/goto/Goto.cpp)).
 - **`MFLIP_SKIP_HOME OFF`** (default) — a goto that changes pier side first slews to home (counterweight down), with an extra avoidance move if the scope is low, then to the target ([Goto.cpp:143](../src/telescope/mount/goto/Goto.cpp)). Going direct (`ON`) is faster but the scope can sweep lower than either end point mid-move. `MFLIP_PAUSE_HOME` only works with the home waypoint.
 - **`PIER_SIDE_PREFERRED_DEFAULT EAST`** — 10.27 also offers `AUTOMATIC` (prefers west near the under-pole meridian, east otherwise).

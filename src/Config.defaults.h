@@ -623,6 +623,9 @@
 #ifndef MOUNT_ENABLE_IN_STANDBY
 #define MOUNT_ENABLE_IN_STANDBY       OFF                         // ON Enables mount motor drivers in standby
 #endif
+#ifndef MOUNT_DISABLE_WHEN_PARKED
+#define MOUNT_DISABLE_WHEN_PARKED     OFF                         // ON powers the motors (and shared enable pin) down while parked
+#endif
 #ifndef MOUNT_AUTO_HOME_DEFAULT
 #define MOUNT_AUTO_HOME_DEFAULT       OFF                         // ON default find home at boot
 #endif

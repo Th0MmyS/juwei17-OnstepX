@@ -33,6 +33,7 @@ Key settings (full explanation in [docs/configuration.md](docs/configuration.md)
 | Step signal | `PULSE` |
 | Meridian flips | automatic, routed through home |
 | Motors in standby | powered (hold position) |
+| Motors when parked | off (shared enable GPIO12 HIGH), as the factory firmware |
 | Tracking at power-up | off |
 
 ## Documentation

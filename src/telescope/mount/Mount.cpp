@@ -7,6 +7,7 @@
 
 #include "../../lib/tasks/OnTask.h"
 #include "../../lib/nv/Nv.h"
+#include "../../lib/gpioEx/GpioEx.h"
 
 #include "../Telescope.h"
 #include "coordinates/Transform.h"
@@ -104,6 +105,11 @@ void Mount::begin() {
   #endif
 
   tracking(false);
+
+  #if MOUNT_DISABLE_WHEN_PARKED == ON
+    // the park state is known now: power down if parked (or if standby is unpowered)
+    if (park.state == PS_PARKED || MOUNT_ENABLE_IN_STANDBY != ON) enable(false);
+  #endif
 
   // restore where we were pointing
   #if MOUNT_COORDS_MEMORY == ON
@@ -229,6 +235,11 @@ void Mount::tracking(bool state) {
 
 // enables or disables power to the mount motors
 void Mount::enable(bool state) {
+  #if MOUNT_DISABLE_WHEN_PARKED == ON
+    // motors stay powered down while parked; unpark sets PS_UNPARKED before it powers up
+    if (state == true && park.state == PS_PARKED) state = false;
+  #endif
+
   if (state == true) {
     #if LIMIT_STRICT == ON
       if (!site.dateIsReady || !site.timeIsReady) return;
@@ -242,6 +253,11 @@ void Mount::enable(bool state) {
 
   axis1.enable(state);
   axis2.enable(state);
+
+  #if MOUNT_DISABLE_WHEN_PARKED == ON && defined(SHARED_ENABLE_PIN)
+    // the shared enable pin (GPIO12 on MaxESP3) follows motor power
+    digitalWriteEx(SHARED_ENABLE_PIN, state ? SHARED_ENABLE_STATE : !SHARED_ENABLE_STATE);
+  #endif
 }
 
 // updates the tracking rates, etc. as appropriate for the mount state
