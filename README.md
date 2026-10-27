@@ -16,7 +16,7 @@ Advanced computerized telescope controller firmware for precision astronomical m
 | Motors | **MOONS' 0.9°** MS17HA2P4150-M (RA) / MS17HA2P4150 (DEC), 1.5 A (stock Sumtor 1.8° motors replaced) |
 | Mount | German equatorial (`GEM`), preferred pier side `EAST` |
 | Connectivity | Bluetooth (`OnStepX`), USB, WiFi via Smart Web Server 2.09g |
-| Time | DS3231 real-time clock |
+| Time | DS3231 real-time clock with coin-cell backup |
 
 Key settings (full explanation in [docs/configuration.md](docs/configuration.md)):
 

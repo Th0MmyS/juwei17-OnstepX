@@ -18,20 +18,21 @@ Facts about the mount and its controller that the configuration depends on. Most
 ## RA brake
 
 - The RA motor has an electromagnetic brake that is **released while 12 V is present and engages when power is lost** (you can hear it click when you unplug the mount).
-- Owner correspondence says it is wired straight to 12 V, in which case firmware cannot control it and **parking does not engage the brake**. Not yet measured on this mount.
+- **The board switches it.** The 2-pin connector next to the power jack, beside `LED2`, is very likely the brake output. Right next to it are transistor `Q1`, diode `D2` and resistors `RBK` / `RBK1`: a transistor switch with a flyback diode, the usual way to drive a brake coil from a logic signal.
+- Owner correspondence said the brake is wired straight to 12 V; the board layout points the other way. Which signal drives `Q1` is not yet measured. GPIO12 is the only candidate, because it is the only pin the factory firmware switches on park and unpark.
 
 ### Factory firmware: motors off when parked
 
 The factory firmware (OnStep 4.24s on the ESP32, with the stock TMC2209 drivers in standalone mode) powers the motors down when a park completes by driving the shared enable pin **GPIO12 HIGH**, and drives it LOW again on unpark. That is the click heard on park and unpark. It drives no other pin, so parking engages the brake only if the board feeds the brake from the enable line.
 
-`MOUNT_DISABLE_WHEN_PARKED ON` reproduces this in OnStepX ([configuration.md](configuration.md#mount-behaviour)). To find out whether it also engages the brake, measure the voltage across the brake coil unparked and then parked:
+`MOUNT_DISABLE_WHEN_PARKED ON` reproduces this in OnStepX ([configuration.md](configuration.md#mount-behaviour)). To confirm that it also engages the brake, either:
 
-- about 12 V both times: the brake is wired straight to 12 V. Parking only switches the motors off, and RA is then held by the gear train alone.
-- about 0 V when parked: the brake follows GPIO12, and parking engages it.
+- **Power on:** measure the voltage across the brake connector unparked, then parked. About 12 V unparked and about 0 V parked means the brake follows GPIO12 and parking engages it. About 12 V both times means it does not, and a parked RA is held by the gear train alone.
+- **Power off:** measure the resistance from `Q1`'s gate (or the `RBK` resistor beside it) to the EN pin of either driver socket, which is wired to GPIO12. A low or resistor-sized reading means they are connected.
 
-### Idea: engage the brake when parked
+### Fallback: drive the brake from AUX8
 
-OnStepX has a `PARK_STATUS` output that drives a pin according to the park state ([Status.cpp:92](../src/telescope/mount/status/Status.cpp)). With
+Only needed if the measurement above shows the brake does not follow GPIO12. OnStepX has a `PARK_STATUS` output that drives a pin according to the park state ([Status.cpp:92](../src/telescope/mount/status/Status.cpp)). With
 
 ```cpp
 #define PARK_STATUS                   LOW   // pin LOW when parked, HIGH otherwise
@@ -54,7 +55,7 @@ Details of the swap: [motor-upgrade-plan.md](motor-upgrade-plan.md). See [config
 ## Controller board
 
 - **ESP32** runs OnStepX; **ESP8266** runs the Smart Web Server (WiFi). Both are flashed over the same USB port selected with DIP switches — see [flashing.md](flashing.md).
-- **DS3231** real-time clock on I2C.
+- **DS3231** real-time clock on I2C (GPIO21/22), backed by a 3 V lithium coin cell on the board, so the date and time survive power-off. The factory firmware used it too (`TIME_LOCATION_SOURCE DS3231`). To check the cell, leave the mount unplugged for a few minutes, power up, and before any app connects (apps often set the clock) send `:GC#` and `:GL#`: a correct date and time means the cell is good.
 - Pin-compatible with the OnStepX **MaxESP3** pinmap.
 - WiFi range is short (no external antenna).
 
@@ -97,5 +98,6 @@ Because GPIO4 and GPIO26 are in use, OnStepX's built-in ESP8266 flasher (`SERIAL
 - Cloudy Nights, ["Juwei-17 mounts on Aliexpress"](https://www.cloudynights.com/forums/topic/918425-juwei-17-mounts-on-aliexpress/) — driver swap and currents ([p.3](https://www.cloudynights.com/forums/topic/918425-juwei-17-mounts-on-aliexpress/page/3/)), motor models and gearing ([p.21](https://www.cloudynights.com/forums/topic/918425-juwei-17-mounts-on-aliexpress/page/21/)), trimmer currents ([p.42](https://www.cloudynights.com/forums/topic/918425-juwei-17-mounts-on-aliexpress/page/42/), [p.47](https://www.cloudynights.com/forums/topic/918425-juwei-17-mounts-on-aliexpress/page/47/)), slew speeds ([p.44](https://www.cloudynights.com/forums/topic/918425-juwei-17-mounts-on-aliexpress/page/44/), [p.55](https://www.cloudynights.com/forums/topic/918425-juwei-17-mounts-on-aliexpress/page/55/)), TMC5160 module jumper ([p.61](https://www.cloudynights.com/forums/topic/918425-juwei-17-mounts-on-aliexpress/page/61/)), summary of common mods ([p.66](https://www.cloudynights.com/forums/topic/918425-juwei-17-mounts-on-aliexpress/page/66/)), harmonic ratio ([p.67](https://www.cloudynights.com/forums/topic/918425-juwei-17-mounts-on-aliexpress/page/67/))
 - punkgeek's Juwei 17 OnStepX configuration: [geeksville/OnStepX, E4 branch](https://github.com/geeksville/OnStepX/blob/E4/Config.h)
 - [satakagi/OnStep-JUWEI-17](https://github.com/satakagi/OnStep-JUWEI-17) — open controller design, gear ratio notes
-- RA brake behaviour: owner correspondence (j21blackjack)
+- RA brake behaviour: owner correspondence (j21blackjack); brake output and coin cell: photo of this controller board (October 2026)
+- Factory firmware behaviour (park, GPIO12, DS3231): disassembly of the factory OnStep 4.24s binary, compared with the OnStep `release-4.24` source
 - Flashing procedure and DIP switch mapping: [OnStep group message 58916](https://onstep.groups.io/g/main/message/58916)

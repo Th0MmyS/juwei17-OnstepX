@@ -12,7 +12,7 @@ This page explains every setting in [`Config.h`](../Config.h) that differs from 
 | `PINMAP` | `MaxESP3` | `OFF` | The Juwei 17 controller board is pin-compatible with MaxESP3 |
 | `SERIAL_RADIO` | `BLUETOOTH` | `OFF` | ESP32 Bluetooth serial command channel |
 | `STEP_WAVE_FORM` | `PULSE` | `SQUARE` | More step-rate headroom, half the interrupts — see [Step signal](#step-signal-and-slew-speed) |
-| `TIME_LOCATION_SOURCE` | `DS3231` | `OFF` | On-board real-time clock |
+| `TIME_LOCATION_SOURCE` | `DS3231` | `OFF` | On-board real-time clock with coin-cell backup; the factory firmware used it too |
 | `AXIS1/2_DRIVER_MODEL` | `TMC5160` | `OFF` | Stock TMC2208/2209 drivers replaced, see [hardware.md](hardware.md) |
 | `AXIS1_STEPS_PER_DEGREE` | `14326.8` | `12800` | Previous value (7163.4) × 2 for the 400-step MOONS' motors; to be confirmed by plate solving |
 | `AXIS2_STEPS_PER_DEGREE` | `14364.8` | `12800` | ≈ 400 steps × 32 µsteps × 404 ÷ 360 |
