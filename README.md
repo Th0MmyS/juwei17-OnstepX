@@ -40,7 +40,7 @@ Key settings (full explanation in [docs/configuration.md](docs/configuration.md)
 
 | Guide | What's in it |
 |---|---|
-| [Flashing both chips](docs/flashing.md) | Backup, build and flash OnStepX (ESP32) and the web server (ESP8266), DIP switches, troubleshooting |
+| [Flashing guide](FLASHING.md) | Complete, tested procedure: backup, build and flash OnStepX (ESP32) and the web server (ESP8266), DIP switches, checks, troubleshooting |
 | [Configuration reference](docs/configuration.md) | Every customised `Config.h` setting and why: step signal, speed limits, acceleration, motor current, driver status, decay modes |
 | [Upgrading to 10.27](docs/upgrading-to-10.27.md) | Why 10.27m, what changed, what to write down before flashing (settings are reset) |
 | [Web server](docs/web-server.md) | Smart Web Server version, configuration, Advanced Configuration caveats |
@@ -62,9 +62,11 @@ arduino-cli compile --fqbn esp32:esp32:esp32 C:\OnStepX
 
 `src/plugins/Plugins.config.h` is part of this repository (all plugins off); the firmware does not build without it.
 
+The WiFi web server for the board's ESP8266 is in [`SmartWebServer/`](SmartWebServer): Smart Web Server 2.09g, preset for the Juwei 17 (`HOST_NAME "Juwei17"`). It is built separately (board *Generic ESP8266 Module*, 4 MB) — see [FLASHING.md](FLASHING.md#step-7--build-the-web-server).
+
 ## Flashing the Firmware
 
-Before flashing, you must set the board's DIP switches into bootloader mode to allow programming over USB. The full procedure for both chips, including backups and the web server, is in [docs/flashing.md](docs/flashing.md).
+Before flashing, you must set the board's DIP switches into bootloader mode to allow programming over USB. The full procedure for both chips, including backups and the web server, is in [FLASHING.md](FLASHING.md).
 
 ### DIP Switch Mapping
 - **Switches 1, 2, 3**: Control the ESP8266 (`1 = RX`, `2 = TX`, `3 = IO0`)

@@ -52,7 +52,7 @@ See [configuration.md](configuration.md#motor-current) for how OnStepX current s
 
 ## Controller board
 
-- **ESP32** runs OnStepX; **ESP8266** runs the Smart Web Server (WiFi). Both are flashed over the same USB port selected with DIP switches — see [flashing.md](flashing.md).
+- **ESP32** runs OnStepX; **ESP8266** runs the Smart Web Server (WiFi). Both are flashed over the same USB port selected with DIP switches — see [FLASHING.md](../FLASHING.md).
 - **DS3231** real-time clock on I2C (GPIO21/22), backed by a 3 V lithium coin cell on the board, so the date and time survive power-off. The factory firmware used it too (`TIME_LOCATION_SOURCE DS3231`). To check the cell, leave the mount unplugged for a few minutes, power up, and before any app connects (apps often set the clock) send `:GC#` and `:GL#`: a correct date and time means the cell is good.
 - Pin-compatible with the OnStepX **MaxESP3** pinmap.
 - WiFi range is short (no external antenna).

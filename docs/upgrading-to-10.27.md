@@ -1,6 +1,6 @@
 # Upgrading from OnStepX 10.22 to 10.27
 
-This repository moved from OnStepX **10.22v** to **10.27m** in October 2026. This page explains why, what changed, and what to do on the mount. The step-by-step flashing procedure is in [flashing.md](flashing.md).
+This repository moved from OnStepX **10.22v** to **10.27m** in October 2026. This page explains why, what changed, and what to do on the mount. The step-by-step flashing procedure is in [FLASHING.md](../FLASHING.md).
 
 ## Why 10.27m, and why from upstream
 
@@ -38,7 +38,7 @@ The motor current maths for the TMC5160 is unchanged, so `IRUN`/`IGOTO` values c
    - backlash (RA and DEC)
    - preferred rates, pier side, meridian-flip options
    - alignment model, PEC data
-2. **Back up both chips** ([flashing.md, step 1](flashing.md#step-1--back-up-both-chips)).
+2. **Back up both chips** ([FLASHING.md, step 2](../FLASHING.md#step-2--back-up-the-esp32-onstepx)).
 3. **Use ESP32 board package 2.0.x** (tested with 2.0.11).
 
 The Bluetooth name stays **`OnStepX`** (`HOST_NAME`), so paired devices keep working.
@@ -48,7 +48,7 @@ The Bluetooth name stays **`OnStepX`** (`HOST_NAME`), so paired devices keep wor
 1. Connect (Bluetooth or USB) and check the version reads **10.27m**.
 2. Re-enter site, date/time, limits and backlash.
 3. Set and save the park position again, then test park/unpark and a meridian flip.
-4. Upgrade the web server to SWS 2.09g ([flashing.md, step 3](flashing.md#step-3--flash-the-web-server-on-the-esp8266)).
+4. Upgrade the web server to SWS 2.09g ([FLASHING.md, step 7](../FLASHING.md#step-7--build-the-web-server)).
 
 ## Rolling back
 

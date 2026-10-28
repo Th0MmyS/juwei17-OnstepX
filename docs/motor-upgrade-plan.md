@@ -79,8 +79,8 @@ If *Advanced Configuration* is enabled in the web server, make these changes the
 
 ## Procedure after fitting
 
-1. **Back up first**: both chips ([flashing.md](flashing.md#step-1--back-up-both-chips)) and any object catalogs — changing steps/degree can corrupt the stored library.
-2. Update `Config.h` as above, build and flash ([flashing.md](flashing.md)).
+1. **Back up first**: both chips ([FLASHING.md](../FLASHING.md#step-2--back-up-the-esp32-onstepx)) and any object catalogs — changing steps/degree can corrupt the stored library.
+2. Update `Config.h` as above, build and flash ([FLASHING.md](../FLASHING.md)).
 3. Power on with the motors connected and still (the drivers calibrate StealthChop at boot).
 4. Move each axis slowly by hand control; fix direction with `AXISn_REVERSE`.
 5. Test gotos at 2 °/s, then 4 °/s, with the scope mounted and balanced. Watch for stalls and driver-status faults.

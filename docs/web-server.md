@@ -1,10 +1,12 @@
 # Smart Web Server (WiFi)
 
-The WiFi web interface does not run on the ESP32 with OnStepX. It runs on the board's separate **ESP8266**, which talks to OnStepX over a serial link (OnStepX `SERIAL_B` = ESP32 `Serial2`, GPIO16/17). The firmware is the OnStep **Smart Web Server (SWS)**. Step-by-step flashing is in [flashing.md](flashing.md#step-3--flash-the-web-server-on-the-esp8266).
+The WiFi web interface does not run on the ESP32 with OnStepX. It runs on the board's separate **ESP8266**, which talks to OnStepX over a serial link (OnStepX `SERIAL_B` = ESP32 `Serial2`, GPIO16/17). The firmware is the OnStep **Smart Web Server (SWS)**. Step-by-step flashing is in [FLASHING.md](../FLASHING.md#step-7--build-the-web-server).
 
 ## Which version
 
-The Juwei 17 ships with an old SWS of unknown version. We use **upstream SWS 2.09g** ([hjd1964/SmartWebServer](https://github.com/hjd1964/SmartWebServer) commit `0d3aac0`, January 2026), the release from the same period as OnStepX 10.27m.
+This mount had SWS **2.06g** before. It now runs **upstream SWS 2.09g** ([hjd1964/SmartWebServer](https://github.com/hjd1964/SmartWebServer) commit `0d3aac0`, January 2026), the release from the same period as OnStepX 10.27m, flashed on 2026-10-28 (ESP8266EX, 4 MB flash; the 2.06g image is backed up). The source is in this repository's [`SmartWebServer/`](../SmartWebServer) folder — upstream 2.09g with only `HOST_NAME "Juwei17"` and `DISPLAY_WEATHER OFF` changed in `Config.h`.
+
+With 2.06g the axis tiles said *"Editing of this axis has been disabled"*: SWS up to 2.08 asks for axis settings with `:GXA1#`, while OnStepX 10.26+ only answers the new `:GXA1,<n>#` form ([Axis.command.cpp](../src/lib/axis/Axis.command.cpp)). With 2.09g the per-axis page works.
 
 | OnStepX | SWS | Per-axis settings page |
 |---|---|---|
