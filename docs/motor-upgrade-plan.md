@@ -1,6 +1,6 @@
 # Plan: upgrading to MOONS' 0.9° motors
 
-> **Status: plan only — nothing here is applied yet.** This lists what would change if the stock motors are replaced with MOONS' **MS17HA2P4150-M** (RA) and **MS17HA2P4150** (DEC).
+> **Status: motors arrived, not fitted yet.** The park/brake logic is being tested with the stock motors first. The configuration below was prepared in commit `c6454d8` and reverted for now; re-apply it (`git revert` of the revert commit, or the values in [Configuration changes](#configuration-changes)) on the day the MOONS' **MS17HA2P4150-M** (RA) and **MS17HA2P4150** (DEC) are fitted.
 
 ## The motors
 

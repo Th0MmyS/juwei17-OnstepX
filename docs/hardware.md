@@ -5,9 +5,15 @@ Facts about the mount and its controller that the configuration depends on. Most
 ## Mechanics
 
 - **Drive train (each axis):** stepper → 1:4 belt/pulley → harmonic (strain-wave) drive.
-- **Reduction:** the vendor quotes 1:100 × 1:4 = 400:1. The factory firmware uses 3591.111 steps/degree at 16 microsteps, which implies **404:1** (a 101:1 harmonic). One owner checked the harmonic drive serial numbers against the manufacturer's data, found 100:1, and reported that switching fixed long gotos needing small final corrections (7111.1 steps/degree at 32 microsteps). This repository uses calibrated values: **RA 7163.4**, **DEC 7182.4** at 32 microsteps. Worth checking if long gotos land slightly off.
+- **Reduction — not settled:**
+  - The store listing says **400:1** ("double 17 harmonic reducer", 100:1 × 4 belt).
+  - The factory firmware uses 3591.111 steps/degree at 16 microsteps, which is exactly **404:1** (a 101:1 harmonic).
+  - punkgeek checked the harmonic drive serial numbers against the maker's data, found 100:1, and reported that switching fixed long gotos needing small final corrections.
+  - Psittacula pointed out that Harmonic Drive's catalog gives **100:1 or 101:1 for the same gear set, depending on which element is held fixed**; fmendes believes the Juwei uses the 101:1 arrangement and runs the factory ratio without problems.
+
+  At 32 microsteps with the stock 1.8° motors the candidates are **7111.1** (400:1) and **7182.2** (404:1); this repository uses **RA 7163.4** and **DEC 7182.4**. (With the MOONS' 0.9° motors all values double.) A plate-solved goto settles it: see [future_plans.md](future_plans.md).
 - **RA has no mechanical hard stop**, which is why RA limits are extended to ±190°. **DEC** can drive the telescope into the tripod, hence the −10° lower limit.
-- **Backlash:** the harmonic drive has almost none, but the belt stage can add a little; owners have seen DEC backlash in PHD2's Guiding Assistant. That is why `GOTO_OFFSET` stays at 0.25°.
+- **Backlash:** owners find no mechanical play, yet PHD2's Guiding Assistant reports 3–4 s of DEC backlash while guiding stays at ~0.6″. Owners regard this as a known PHD2 quirk on strain-wave mounts ("as long as your mount reacts fine during guiding, just ignore it"). A likely contributor is the small elastic wind-up of the harmonic gear and belt when DEC reverses. `GOTO_OFFSET` stays at 0.25° so gotos always approach from the same direction.
 
 ## RA brake
 
