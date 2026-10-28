@@ -6,8 +6,8 @@ Ideas for improving the Juwei 17, roughly in order of value for money. Tick item
 
 ## Free: settings and setup
 
-- [ ] **1. Flash OnStepX 10.27m and Smart Web Server 2.09g, then run the driver-status test.**
-  Already prepared on this branch. Unlocks the per-axis settings page in the web UI and hardware-fault protection. Procedure: [flashing.md](flashing.md). If the mount reports a hardware fault right after flashing, set `AXIS1_DRIVER_STATUS` / `AXIS2_DRIVER_STATUS` to `OFF` ([configuration.md](configuration.md#driver-status)).
+- [ ] **1. Flash OnStepX 10.27m and Smart Web Server 2.09g.** *OnStepX 10.27m flashed 2026-10-28 (backup of the old firmware in `Documents\juwei17-backups`); web server still to do.*
+  Unlocks the per-axis settings page in the web UI. The driver-status test failed on this board (no readback line), so `AXIS1/2_DRIVER_STATUS` is `OFF` ([configuration.md](configuration.md#driver-status)). Procedure: [flashing.md](flashing.md).
 
 - [x] **2. Raise the motor currents.** *Done in `Config.h`; check temperatures after the first slews.*
   `AXISn_DRIVER_IRUN 1000` and `AXISn_DRIVER_IGOTO 1300` (was 700 / 1000, only ~480 / 670 mA RMS; now ~670 / 960 mA RMS). Owners settled around 900 mA; this gives more torque in reserve for gotos while staying below the motors' 1.3 A rating. Details: [configuration.md](configuration.md#motor-current).

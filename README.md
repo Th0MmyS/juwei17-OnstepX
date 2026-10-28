@@ -25,7 +25,7 @@ Key settings (full explanation in [docs/configuration.md](docs/configuration.md)
 | Microsteps tracking / goto | 32 / 8 | 32 / 8 |
 | Current hold / run / goto (mA, peak) | OFF (=500) / 1000 / 1300 | OFF (=500) / 1000 / 1300 |
 | Limits | −190° … +190° | −10° … +90° |
-| Driver status monitoring | ON | ON |
+| Driver status monitoring | OFF (no readback line on this board) | OFF (no readback line on this board) |
 
 | Mount behaviour | |
 |---|---|

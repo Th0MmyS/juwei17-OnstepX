@@ -23,7 +23,7 @@ This page explains every setting in [`Config.h`](../Config.h) that differs from 
 | `AXIS1/2_DRIVER_MICROSTEPS_GOTO` | `8` | `OFF` | Smoother, quieter slews than 2 — see [Step signal](#step-signal-and-slew-speed) |
 | `AXIS1/2_DRIVER_IRUN` | `1000` | `OFF` | Tracking current — see [Motor current](#motor-current) |
 | `AXIS1/2_DRIVER_IGOTO` | `1300` | `OFF` | Slew current |
-| `AXIS1/2_DRIVER_STATUS` | `ON` | `OFF` | Hardware fault monitoring — see [Driver status](#driver-status) |
+| `AXIS1/2_DRIVER_STATUS` | `OFF` | `OFF` | Tested `ON`: the board has no status readback line, so every read looked like a fault — see [Driver status](#driver-status) |
 | `MOUNT_ENABLE_IN_STANDBY` | `ON` | `OFF` | Motors hold the axes while idle |
 | `MOUNT_DISABLE_WHEN_PARKED` | `ON` | `OFF` (added in this repo) | Motors off while parked, like the factory firmware — see [Mount behaviour](#mount-behaviour) |
 | `STATUS_MOUNT_LED` | `ON` | `OFF` | Mount activity LED |
@@ -110,9 +110,9 @@ Open-load is read but ignored, because it is unreliable at standstill. On a faul
 
 Both drivers return data on one shared pin, GPIO4 (AUX2). That pin is free in this configuration because `SERIAL_B_ESP_FLASHING` is `OFF` and there is no focuser.
 
-> ⚠️ **Check this after flashing.** It is not confirmed that the Juwei 17 board connects the TMC5160 data-out (SDO) pins to GPIO4. OnStepX only rejects a status read that comes back as all zeros ([TmcSPI.cpp:215](../src/lib/axis/motor/stepDir/tmc/legacy/TmcSPI.cpp)). If the line is not connected or is pulled high, reads come back as all ones, which look like *short to ground + over-temperature*: **the mount refuses to move with a hardware fault.** The MaxESP3 pinmap also labels GPIO4 as the ESP8266 reset line; if the board wires it that way, status reads could **reset the web server**.
+> **Result on this board (tested 2026-10-28): driver status does not work, so it is `OFF`.** With it `ON`, OnStepX 10.27m reported every flag on both drivers at once — `:GXU1#` and `:GXU2#` both returned `ST,OA,OB,GA,GB,OT,PW,GF` (standstill, open load, short to ground, over-temperature, pre-warning, fault) with the motors unplugged and the board cold — and `:GU#` ended in error `1` (motor fault), which blocks gotos and parking. That is the all-ones pattern: the TMC5160 data-out (SDO) pins are not connected to GPIO4 on the Juwei board, or the line is pulled high (the MaxESP3 pinmap also labels GPIO4 as the ESP8266 reset). OnStepX only rejects all-zero reads ([TmcSPI.cpp:215](../src/lib/axis/motor/stepDir/tmc/legacy/TmcSPI.cpp)), so all ones look like a real fault.
 >
-> After flashing, do a test goto and leave the web server open for a few minutes. If the mount reports a hardware fault, or WiFi keeps dropping, set `AXIS1_DRIVER_STATUS` and `AXIS2_DRIVER_STATUS` to `OFF` and reflash.
+> Writing settings to the drivers is unaffected: currents, microsteps and decay modes still go out over SPI (the drivers would not run at all otherwise). Only the readback is missing. Fault protection would need a wire from the drivers' SDO pins to GPIO4.
 
 ## Decay modes
 
