@@ -9,6 +9,23 @@
 
 #include "../../../../../softSpi/SoftSpi.h"
 
+// Juwei17: chopper settings can be overridden from Config.h; the defaults below are upstream's values
+#ifndef TMC_SPI_CHOPCONF_TOFF
+  #define TMC_SPI_CHOPCONF_TOFF       4      // off time, slow decay phase (2..15)
+#endif
+#ifndef TMC_SPI_CHOPCONF_HSTRT
+  #define TMC_SPI_CHOPCONF_HSTRT      0      // SpreadCycle hysteresis start (0..7 = 1..8)
+#endif
+#ifndef TMC_SPI_CHOPCONF_HEND
+  #define TMC_SPI_CHOPCONF_HEND       0      // SpreadCycle hysteresis end (0..15 = -3..12)
+#endif
+#ifndef TMC_SPI_CHOPCONF_TBL
+  #define TMC_SPI_CHOPCONF_TBL        1      // blank time (0..3 = 16, 24, 36, 54 clocks)
+#endif
+#ifndef TMC_SPI_PWMCONF_AUTOGRAD
+  #define TMC_SPI_PWMCONF_AUTOGRAD    0      // TMC5160 StealthChop automatic PWM gradient (0 or 1)
+#endif
+
 class TmcSPI {
   public:
     // setup SoftSpi or UART and driver model
@@ -113,11 +130,11 @@ class TmcSPI {
     uint32_t last_PWMCONF     = 0;
 
     // CHOPCONF settings
-    uint32_t cc_toff          = 4;    // default=4,   range 2 to 15 (Off time setting, slow decay phase)
-    uint32_t cc_hstart        = 0;    // default=0,   range 0 to 7  (Hysteresis start 1, 2, ..., 8)
-    uint32_t cc_hend          = 0;    // default=0,   range 0 to 15 (Hysteresis -3, -2, -1, 0, 1 ..., 12)
+    uint32_t cc_toff          = TMC_SPI_CHOPCONF_TOFF;   // default=4,   range 2 to 15 (Off time setting, slow decay phase)
+    uint32_t cc_hstart        = TMC_SPI_CHOPCONF_HSTRT;  // default=0,   range 0 to 7  (Hysteresis start 1, 2, ..., 8)
+    uint32_t cc_hend          = TMC_SPI_CHOPCONF_HEND;   // default=0,   range 0 to 15 (Hysteresis -3, -2, -1, 0, 1 ..., 12)
     uint32_t cc_rndtf         = 0;    // default=0,   range 0 to 1  (Enables small random value to be added to TOFF)
-    uint32_t cc_tbl           = 1;    // default=1,   range 0 to 3  (for 6, 24, 36 or 54 clocks)
+    uint32_t cc_tbl           = TMC_SPI_CHOPCONF_TBL;    // default=1,   range 0 to 3  (for 6, 24, 36 or 54 clocks)
     uint32_t cc_vsense        = 0;    // default=0,   range 0 to 1  (0 for high sensitivity, 1 for low sensitivity @ 50% current setting)
     uint32_t cc_vhighfs       = 0;    // default=0,   range 0 to 1  (Enables switch to full-step when VHIGH (THIGH?) is exceeded)
     uint32_t cc_vhighchm      = 0;    // default=0,   range 0 to 1  (Enables switch to fast-decay mode VHIGH (THIGH?) is exceeded)
@@ -145,7 +162,7 @@ class TmcSPI {
     uint32_t pc_pwm_sym       = 0x00; // default=0,   range 0 to 1   (PWM symmetric 0: value may change during cycle, 1: enforce; 0: disable autograd on TMC5160/5161)
     // TMC2209/TMC5160 specific
     uint32_t pc_pwm_ofs       = 0x1e; // default=30,  range 0 to 255 (PWM user defined amplitude offset related to full motor current)
-    uint32_t pc_pwm_autograd  = 0x00; // default=0,   range 0 to 1   (PWM automatic grad control 0: off, 1: on)
+    uint32_t pc_pwm_autograd  = TMC_SPI_PWMCONF_AUTOGRAD; // default=0, range 0 to 1 (PWM automatic grad control 0: off, 1: on)
     uint32_t pc_pwm_reg       = 0x04; // default=4,   range 0 to 15  (PWM maximum amplitude change per half-wave when using pwm autoscale)
     uint32_t pc_pwm_lim       = 0x0c; // default=12,  range 0 to 15  (PWM limit for PWM_SCALE_AUTO when switching back from spreadCycle to stealthChop)
 
