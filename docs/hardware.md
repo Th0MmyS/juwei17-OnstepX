@@ -11,7 +11,7 @@ Facts about the mount and its controller that the configuration depends on. Most
   - punkgeek checked the harmonic drive serial numbers against the maker's data, found 100:1, and reported that switching fixed long gotos needing small final corrections.
   - Psittacula pointed out that Harmonic Drive's catalog gives **100:1 or 101:1 for the same gear set, depending on which element is held fixed**; fmendes believes the Juwei uses the 101:1 arrangement and runs the factory ratio without problems.
 
-  At 32 microsteps with the stock 1.8° motors the candidates are **7111.1** (400:1) and **7182.2** (404:1); this repository uses **RA 7163.4** and **DEC 7182.4**. (With the MOONS' 0.9° motors all values double.) A plate-solved goto settles it: see [future_plans.md](future_plans.md).
+  With the MOONS' 0.9° motors at 32 microsteps the candidates are **14222.2** (400:1) and **14364.4** (404:1); this repository uses **RA 14326.8** and **DEC 14364.8** (the stock-motor values 7163.4 / 7182.4 doubled). A plate-solved goto settles it: see [future_plans.md](future_plans.md).
 - **RA has no mechanical hard stop**, which is why RA limits are extended to ±190°. **DEC** can drive the telescope into the tripod, hence the −10° lower limit.
 - **Backlash:** owners find no mechanical play, yet PHD2's Guiding Assistant reports 3–4 s of DEC backlash while guiding stays at ~0.6″. Owners regard this as a known PHD2 quirk on strain-wave mounts ("as long as your mount reacts fine during guiding, just ignore it"). A likely contributor is the small elastic wind-up of the harmonic gear and belt when DEC reverses. `GOTO_OFFSET` stays at 0.25° so gotos always approach from the same direction.
 
@@ -45,10 +45,12 @@ and a small logic-level N-MOSFET (e.g. AO3400, IRLZ44N) switching the brake's 12
 
 | Axis | Model | Type | Rated current |
 |---|---|---|---|
-| RA | Sumtor 42HS4013A4 | NEMA 17, 1.8° (200 steps) | 1.3 A |
-| DEC | Sumtor 42HS4013B4 | NEMA 17, 1.8° (200 steps) | 1.3 A |
+| RA | **MOONS' MS17HA2P4150-M** (double shaft) | NEMA 17, 0.9° (400 steps), 0.40 N·m | 1.5 A |
+| DEC | **MOONS' MS17HA2P4150** | NEMA 17, 0.9° (400 steps), 0.40 N·m | 1.5 A |
+| *stock RA (replaced)* | Sumtor 42HS4013A4 | NEMA 17, 1.8° (200 steps) | 1.3 A |
+| *stock DEC (replaced)* | Sumtor 42HS4013B4 | NEMA 17, 1.8° (200 steps) | 1.3 A |
 
-See [configuration.md](configuration.md#motor-current) for how OnStepX current settings map to these.
+MOONS' wiring (6-pin JST PH socket, 4 pins used): pins 1 (black) + 3 (green) are one coil, pins 4 (red) + 6 (blue) the other, about 1.95 Ω each. Details of the swap: [motor-upgrade-plan.md](motor-upgrade-plan.md); current settings: [configuration.md](configuration.md#motor-current).
 
 ## Controller board
 
@@ -63,8 +65,8 @@ See [configuration.md](configuration.md#motor-current) for how OnStepX current s
 |---|---|---|
 | Driver | TMC2208 (early units) / TMC2209 (later), generic modules | **TMC5160** (SPI) |
 | Current setting | trimmer (Vref) on the module; ~350–400 mA early, ~750–850 mA later | from `Config.h` / web UI |
-| Chopper | StealthChop only, no UART/SPI control | StealthChop tracking, SpreadCycle gotos |
-| Practical slew speed | ~2.6–3 °/s | 4 °/s (tested by owners up to 5–6 °/s) |
+| Chopper | StealthChop only, no UART/SPI control | StealthChop tracking, SpreadCycle gotos, [tuned](configuration.md#chopper-tuning-for-the-09-motors) |
+| Practical slew speed | ~2.6–3 °/s | 6 °/s with the MOONS' motors (10 °/s works ~90 % of the time) |
 
 Notes from owners who swapped to TMC5160:
 

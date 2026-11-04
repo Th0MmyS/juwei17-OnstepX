@@ -1,6 +1,6 @@
 # Flashing the Juwei 17: OnStepX and the web server
 
-This is the complete procedure for putting this repository's firmware on a Juwei 17 controller board — step by step, with the exact commands that were used on 2026-10-28. It covers both chips on the board:
+This is the complete procedure for putting this repository's firmware on a Juwei 17 controller board — step by step, with the exact commands that were used on 2026-10-28 and again for the motor upgrade in November 2026. It covers both chips on the board:
 
 | Chip | Runs | Source in this repository |
 |---|---|---|
@@ -75,7 +75,7 @@ All three positions were confirmed on this board. If the ESP32 does not enter fl
 
 Two rules that save a lot of confusion:
 
-1. **Flash mode is only read at power-up.** After changing switches, always power-cycle: 12 V off, wait two seconds, on.
+1. **Flash mode is only read at power-up.** After changing switches, always power-cycle: 12 V off **and USB unplugged** (the board can stay half-powered from USB alone), wait two seconds, then plug both back in.
 2. **One esptool connection per power-up, unless you keep the speed the same.** The board cannot reset its chips over USB. After an esptool command ends, the chip keeps running esptool's helper at the speed that command used, and the next command can only reach it at that same speed. This guide therefore runs everything at `-b 115200` and only uses a faster speed for the last command before you change switches. If you ever see *"No serial data received"*, just power-cycle and repeat the command.
 
 ## Step 1 — Take the board out
@@ -107,7 +107,7 @@ Two rules that save a lot of confusion:
    Copy-Item "$backup\esp32_backup.bin" "$backup\esp32_backup_copy2.bin"
    ```
 
-   Expected: `-- verify OK (digest matched)`. Do not continue until a backup verifies.
+   Expected: `-- verify OK (digest matched)`. If `verify_flash` can't connect after the long read, power-cycle (USB unplugged too) and run it again. `read_flash` checks its own checksum at the end, so a read that finished without an error is already a good backup.
 
 ## Step 3 — Build OnStepX
 
@@ -201,15 +201,31 @@ Expected: `Chip erase completed successfully` and `Hash of data verified.`
 4. Click **Enable Advanced Configuration**, then reboot OnStep (*Reboot OnStep!* or power-cycle). The axis tiles now show editable settings: steps/degree, limits, reverse, microsteps, mA hold/run/goto, decay modes, 256x interpolation.
 5. On the **Network** page, change the WiFi password and the settings password.
 
-Once Advanced Configuration is enabled, the mount uses the values stored on it and **ignores the axis section of `Config.h`, even after reflashing**. To return to `Config.h`, use *Revert to Defaults* (per axis) or disable Advanced Configuration, and reboot. More: [docs/web-server.md](docs/web-server.md).
+Once Advanced Configuration is enabled, the mount uses the values stored on it and **ignores the axis section of `Config.h`, even after reflashing**. To return to `Config.h`, use *Revert to Defaults* (per axis) or disable Advanced Configuration, and reboot ([details](#axis-settings-when-advanced-configuration-is-on)). More: [docs/web-server.md](docs/web-server.md).
 
 ## Step 10 — Put everything back
 
 1. Power off. Check the switches are on **Normal**.
 2. Reconnect the motor cables (RA and DEC as labelled) and reinstall the board.
 3. Power on, connect with your app (Bluetooth name **`OnStepX`**, or WiFi `Juwei17`).
-4. Re-enter site, date/time, limits and backlash; set and save the park position.
-5. Test: move each axis slowly, then a goto at 4 °/s; park and unpark (listen for the brake click on park); power-cycle once while parked to confirm it boots normally. After a few slews check that drivers and motors are only warm.
+4. Re-enter site, date/time, limits and backlash; set and save the park position. Check the longitude sign and the UTC offset: OnStep counts the hours *added to local time to get UTC*, so central European winter time is **−01** (`:SG-01#`) and summer time −02. A wrong site or clock puts the mount on the wrong pier side, and then both axes seem to move the wrong way.
+5. Test: move each axis slowly, then a goto at the default rate (6 °/s); park and unpark (listen for the brake click on park); power-cycle once while parked to confirm it boots normally. After a few slews check that drivers and motors are only warm.
+
+## Axis settings when Advanced Configuration is on
+
+With *Advanced Configuration* enabled in the web server, the mount keeps the axis values stored on it (steps/degree, reverse, microsteps, currents, decay modes, interpolation) and ignores the axis section of a newly flashed `Config.h`. To load the new `Config.h` values after a flash:
+
+- **Web page:** on each axis tile click *Revert to Defaults*, then *Reboot OnStep!*.
+- **USB serial** (switches on Normal): send `:SXA1,R#` and `:SXA2,R#`, then `:ERESET#` to reboot. The reverts are applied at the next boot.
+
+   ```powershell
+   $s = New-Object System.IO.Ports.SerialPort $port, 9600
+   $s.Open(); Start-Sleep 1; $null = $s.ReadExisting()
+   foreach ($c in ':SXA1,R#', ':SXA2,R#', ':ERESET#') { $s.Write($c); Start-Sleep -Milliseconds 800; "$c -> $($s.ReadExisting())" }
+   $s.Close()
+   ```
+
+To check what the mount uses, read the axis values with `:GXA1,<n>#` / `:GXA2,<n>#`: `1` steps/degree, `4` reverse, `5` microsteps, `6` goto microsteps, `7`/`8`/`9` hold/run/goto mA, `10`/`11` decay tracking/goto. Other stored settings (site, limits, park) are not touched.
 
 ## Restoring a backup
 
@@ -228,12 +244,18 @@ A bad flash cannot brick either chip: their bootloaders are in read-only memory,
 |---|---|
 | `Failed to connect ... No serial data received` on the first command | The chip is not in flash mode or not powered: check 12 V is on, check the switches, **power-cycle**. For the ESP32, also try switch 3 on. |
 | `No serial data received` on a later command | The previous command left the chip at a different speed. Power-cycle and repeat, or keep all commands at `-b 115200`. |
+| Still `No serial data received` after a power-cycle | The board stayed powered from USB. Unplug USB as well as the 12 V, then reconnect both. |
+| `Serial TX path seems to be down` | A DIP switch contact is not making it (on this board, switch 5 once). Flip switches 5 and 6 off and on again; check 1 and 2 are OFF in ESP32 mode. |
+| The mount doesn't answer after a flash | It is still in flash mode: set the switches to Normal and power-cycle. |
 | Upload starts, then fails | Use `-b 115200`; try a shorter USB cable. |
 | Build fails with "file name too long" or missing files | Build from a short path such as `C:\OnStepX` (step 3). |
 | Build fails on `Plugins.config.h` | `src/plugins/Plugins.config.h` is part of this repository — copy the whole `src` folder. |
 | The Arduino IDE moved `OnStepX.ino` into an `OnStepX` subfolder | Move it back to the repository root and delete the empty folder (`git status` shows it). Build from `C:\OnStepX` instead. |
 | `:GU#` ends in `1#` (motor fault), gotos refused | Driver status is reading garbage. On this board it must be `OFF` (`AXIS1_DRIVER_STATUS` / `AXIS2_DRIVER_STATUS`) — the board has no readback line. See [docs/configuration.md](docs/configuration.md#driver-status). |
 | Mount does nothing after the upgrade | Stored settings were reset: re-enter site, date/time and limits, then unpark. |
+| New `Config.h` axis values (reverse, currents, microsteps) have no effect | Advanced Configuration is on, so the stored values win: [load the defaults](#axis-settings-when-advanced-configuration-is-on). |
+| Both axes suddenly move the wrong way | Check site and time first (longitude sign, UTC offset, date): the wrong pier side flips both directions. Change `AXISn_REVERSE` only if they are correct. |
+| Motors vibrate, buzz loudly or stall during gotos | The SpreadCycle chopper settings don't suit the motors. This repository's `TMC_SPI_CHOPCONF_*` values fix it for the MOONS' 0.9° motors — [chopper tuning](docs/configuration.md#chopper-tuning-for-the-09-motors). |
 | Web page shows "Editing of this axis has been disabled" | The web server is older than 2.09 (it uses the old `:GXA1#` command). Flash 2.09g (steps 6–8), enable Advanced Configuration, reboot OnStep. |
 | Web page loads but shows no mount data | OnStepX and the web server must both start at 9600 baud (`SERIAL_B_BAUD_DEFAULT` in OnStepX, `SERIAL_BAUD_DEFAULT` in the web server) with `SERIAL_SWAP AUTO` — the defaults in this repository. |
 | Can't find the WiFi | Range is short (no antenna); stand next to the mount. After an erase the network is called `Juwei17`. |

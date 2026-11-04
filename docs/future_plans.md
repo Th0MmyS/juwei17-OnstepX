@@ -2,26 +2,26 @@
 
 Ideas for improving the Juwei 17, roughly in order of value for money. Tick items off as they are done.
 
-**Suggested order:** 1 → 2 (+ FRAM, if bought before flashing) → 3 → 4.
+**Next:** 3 (calibration, now with the MOONS' motors) → 4 → testing with the telescope mounted.
 
 ## Free: settings and setup
 
 - [x] **1. Flash OnStepX 10.27m and Smart Web Server 2.09g.** *Both flashed 2026-10-28 (backups of the old firmware in `Documents\juwei17-backups`); the per-axis settings page works.*
   Unlocks the per-axis settings page in the web UI. The driver-status test failed on this board (no readback line), so `AXIS1/2_DRIVER_STATUS` is `OFF` ([configuration.md](configuration.md#driver-status)). Procedure: [FLASHING.md](../FLASHING.md).
 
-- [x] **2. Raise the motor currents.** *Done in `Config.h`; check temperatures after the first slews.*
-  `AXISn_DRIVER_IRUN 1000` and `AXISn_DRIVER_IGOTO 1300` (was 700 / 1000, only ~480 / 670 mA RMS; now ~670 / 960 mA RMS). Owners settled around 900 mA; this gives more torque in reserve for gotos while staying below the motors' 1.3 A rating. Details: [configuration.md](configuration.md#motor-current).
+- [x] **2. Raise the motor currents.** *Done; check temperatures after long sessions.*
+  Stock motors: `IRUN 1000` / `IGOTO 1300` (~670 / 960 mA RMS, below their 1.3 A rating). MOONS' motors now: `IRUN 1100` / `IGOTO 1600` (~766 / 1149 mA RMS, 51 % / 77 % of 1.5 A). Details: [configuration.md](configuration.md#motor-current).
 
 - [ ] **3. Calibrate steps per degree with plate solving.**
   The gear ratio is disputed — store 400:1, factory firmware 404:1 ([hardware.md](hardware.md#mechanics)). With the current values, sync near DEC 0° low in the east, goto 60° west without crossing the meridian, then plate-solve without syncing:
 
-  | RA result | Meaning | `AXIS1_STEPS_PER_DEGREE` (stock motors) | With MOONS' motors |
+  | RA result | Meaning | `AXIS1_STEPS_PER_DEGREE` (MOONS', in use) | Stock motors |
   |---|---|---|---|
-  | overshoots by ~26′ | 400:1 | 7111.1 | 14222.2 |
-  | lands ~9′ short | 404:1 | 7182.2 | 14364.4 |
-  | within ~2′ | current value is right | keep 7163.4 | 14326.8 |
+  | overshoots by ~26′ | 400:1 | 14222.2 | 7111.1 |
+  | lands ~9′ short | 404:1 | 14364.4 | 7182.2 |
+  | within ~2′ | current value is right | keep 14326.8 | 7163.4 |
 
-  For DEC (sync at DEC 0°, goto DEC +60° on the same pier side): overshoot of ~36′ means 400:1; on target means 404:1 (keep). General formula: new = old × commanded distance ÷ actual distance. Repeat a 30° and a 60° goto — a real steps/degree error grows with distance. If the motor swap is close, calibrate after it.
+  For DEC (current value 14364.8; sync at DEC 0°, goto DEC +60° on the same pier side): overshoot of ~36′ means 400:1 (14222.2); on target means 404:1 (keep). General formula: new = old × commanded distance ÷ actual distance. Repeat a 30° and a 60° goto — a real steps/degree error grows with distance. With Advanced Configuration on, enter the new value on the web page's axis tile (or change `Config.h` and [load the defaults](../FLASHING.md#axis-settings-when-advanced-configuration-is-on)).
 
 - [ ] **4. Check whether DEC backlash is real.**
   PHD2's Guiding Assistant reports 3–4 s of DEC backlash on these mounts even without mechanical play — a known quirk on strain-wave mounts. If DEC guiding looks fine, ignore it and don't enter compensation (it would cause overshoot). Only if the DEC graph shows corrections that lag after a direction change and then jump: check belt tension, then try a small PHD2 DEC backlash compensation.
@@ -43,7 +43,7 @@ Ideas for improving the Juwei 17, roughly in order of value for money. Tick item
 
 ## Bigger projects
 
-- [ ] **MOONS' 0.9° motors** (MS17HA2P4150-M / MS17HA2P4150). *Motors arrived; fitting waits until the park/brake logic is tested with the stock motors.* The configuration is ready in commit `c6454d8` (reverted for now). Plan: [motor-upgrade-plan.md](motor-upgrade-plan.md).
+- [x] **MOONS' 0.9° motors** (MS17HA2P4150-M / MS17HA2P4150). *Fitted 2026-11-03/04.* Chopper tuned for SpreadCycle gotos; 6 °/s default with a 3 s ramp. Findings and settings: [motor-upgrade-plan.md](motor-upgrade-plan.md).
 
 - [ ] **OnStepX 10.29+** once it has a few patch releases. Brings tracking/pulse-guide rate fixes and ESP32 core 3.x support; costs another settings reset and removing `LIMIT_STRICT` from `Config.h` ([upgrading-to-10.27.md](upgrading-to-10.27.md)).
 

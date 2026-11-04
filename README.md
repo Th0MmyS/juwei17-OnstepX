@@ -12,7 +12,8 @@ Advanced computerized telescope controller firmware for precision astronomical m
 |---|---|
 | Firmware | **OnStepX 10.27m** (upstream [hjd1964/OnStepX](https://github.com/hjd1964/OnStepX) commit `6f928aaf`) |
 | Controller | Juwei 17 board — ESP32 (OnStepX) + ESP8266 (WiFi web server), `PINMAP MaxESP3` |
-| Drivers | **TMC5160** over SPI on both axes (stock TMC2208/2209 replaced) |
+| Drivers | **TMC5160** over SPI on both axes (stock TMC2208/2209 replaced), chopper tuned for the 0.9° motors |
+| Motors | **MOONS' 0.9°** MS17HA2P4150-M (RA) / MS17HA2P4150 (DEC), 1.5 A (stock Sumtor 1.8° motors replaced) |
 | Mount | German equatorial (`GEM`), preferred pier side `EAST` |
 | Connectivity | Bluetooth (`OnStepX`), USB, WiFi via Smart Web Server 2.09g |
 | Time | DS3231 real-time clock with coin-cell backup |
@@ -21,15 +22,16 @@ Key settings (full explanation in [docs/configuration.md](docs/configuration.md)
 
 | Setting | RA (Axis 1) | DEC (Axis 2) |
 |---|---|---|
-| Steps per degree | 7163.4 | 7182.4 |
-| Microsteps tracking / goto | 32 / 8 | 32 / 8 |
-| Current hold / run / goto (mA, peak) | OFF (=500) / 1000 / 1300 | OFF (=500) / 1000 / 1300 |
+| Steps per degree | 14326.8 | 14364.8 |
+| Microsteps tracking / goto | 32 / 4 | 32 / 4 |
+| Current hold / run / goto (mA, peak) | OFF (=550) / 1100 / 1600 | OFF (=550) / 1100 / 1600 |
+| Decay mode tracking / goto | StealthChop / SpreadCycle | StealthChop / SpreadCycle |
 | Limits | −190° … +190° | −10° … +90° |
 | Driver status monitoring | OFF (no readback line on this board) | OFF (no readback line on this board) |
 
 | Mount behaviour | |
 |---|---|
-| Slew speed / acceleration distance | 4 °/s / 6° |
+| Slew speed / acceleration | 6 °/s, full speed after 3 s (9°) |
 | Step signal | `PULSE` |
 | Meridian flips | automatic, routed through home |
 | Motors in standby | powered (hold position) |
@@ -45,7 +47,7 @@ Key settings (full explanation in [docs/configuration.md](docs/configuration.md)
 | [Upgrading to 10.27](docs/upgrading-to-10.27.md) | Why 10.27m, what changed, what to write down before flashing (settings are reset) |
 | [Web server](docs/web-server.md) | Smart Web Server version, configuration, Advanced Configuration caveats |
 | [Hardware notes](docs/hardware.md) | Motors, gearing, drivers, pin usage, RA brake, sources |
-| [Motor upgrade plan](docs/motor-upgrade-plan.md) | *Plan only:* what would change with MOONS' 0.9° motors (MS17HA2P4150 / -M) |
+| [Motor upgrade](docs/motor-upgrade-plan.md) | MOONS' 0.9° motors (MS17HA2P4150 / -M): specs, what was found on the mount, final settings |
 | [Future plans](docs/future_plans.md) | Checklist of improvements: settings, cheap hardware, bigger projects |
 
 ## Building
