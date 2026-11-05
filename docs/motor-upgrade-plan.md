@@ -27,7 +27,7 @@ The torque estimate below (from the MOONS' curve) predicted 4 °/s comfortable a
 | Connection | 4-wire | 4-wire, plug |
 | Price | — | about USD 41 each (MOONS' shop) |
 
-The two MOONS' parts are electrically identical; `-M` only adds the rear shaft. One Juwei 17 owner (archcam) fitted exactly this pair with TMC5160 drivers: on Cloudy Nights (p.43–45) he reported 64/4 microsteps, 6 °/s gotos and steps lost above about 9 °/s; on the OnStep group he later reported 32/4 microsteps and 10 °/s on a MaxPCB4 board.
+The two MOONS' parts are electrically identical; `-M` only adds the rear shaft. One Juwei 17 owner (archcam) fitted exactly this pair with TMC5160 drivers: on Cloudy Nights (p.43–45) he reported 64/4 microsteps, 6 °/s gotos and steps lost above about 9 °/s; on the OnStep group he later reported 32/4 microsteps and 10 °/s on a MaxPCB4 board. He replaced the Juwei controller with the MaxPCB and runs it at **24 V**, which is what makes 10 °/s possible; at 12 V this repository's limit is 4 °/s.
 
 **Why `-M` for RA:** the RA motor carries the power-off brake. If the stock brake mounts on the motor's rear shaft, only the double-shaft `-M` can take it. Check this on the stock RA motor before ordering.
 

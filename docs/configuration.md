@@ -145,7 +145,7 @@ With upstream OnStepX's TMC5160 settings the MOONS' motors vibrated strongly and
 | SpreadCycle `TOFF / HSTRT / HEND / TBL` | 4 / 0 / 0 / 1 | **3 / 4 / 1 / 2** | Upstream has almost no hysteresis, so current regulation is poor; these are the values from Trinamic's TMC5160 datasheet example (`CHOPCONF 0x000100C3`) |
 | StealthChop `pwm_autograd` | 0 (off) | **1 (on)** | Lets StealthChop compensate the motor's back-EMF as speed rises; it is the TMC5160's own power-on default |
 
-This repository makes them overridable (`TMC_SPI_CHOPCONF_*`, `TMC_SPI_PWMCONF_AUTOGRAD` in `Config.h`); without those lines the driver behaves exactly like upstream. After the change, SpreadCycle moves ran cleanly up to 7.5 °/s in short tests (archcam on Cloudy Nights reached 10 °/s with the same motors on a MaxPCB4 board), but long gotos are only reliable at 4 °/s at 12 V — see [What else follows the slew rate](#what-else-follows-the-slew-rate).
+This repository makes them overridable (`TMC_SPI_CHOPCONF_*`, `TMC_SPI_PWMCONF_AUTOGRAD` in `Config.h`); without those lines the driver behaves exactly like upstream. After the change, SpreadCycle moves ran cleanly up to 7.5 °/s in short tests (archcam on Cloudy Nights reached 10 °/s with the same motors on a MaxPCB4 board at 24 V), but long gotos are only reliable at 4 °/s at 12 V — see [What else follows the slew rate](#what-else-follows-the-slew-rate).
 
 ## Mount behaviour
 
