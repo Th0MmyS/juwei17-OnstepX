@@ -7,9 +7,11 @@
 1. **Directions:** with the new motors both axes need `REVERSE OFF` (RA was `ON` with the stock motors). Judge directions at a slow manual rate, with correct site and time, and remember that DEC turns the other way mechanically on the west side of the pier.
 2. **Stalls with upstream driver settings:** in SpreadCycle the motors vibrated strongly and stalled with a loud noise, even without a telescope at 2 °/s. Wiring (checked against the MOONS' drawing) and currents were fine. StealthChop for gotos was smoother but stalled at 3 °/s.
 3. **Fix:** Trinamic's recommended SpreadCycle chopper settings plus StealthChop autograd ([configuration.md](configuration.md#chopper-tuning-for-the-09-motors)). After that, SpreadCycle gotos ran cleanly at 5 and 7.5 °/s; 10 °/s worked about 90 % of the time (no telescope).
-4. **Result:** 6 °/s default with 4 goto microsteps and a 3 s acceleration ramp — faster than the stock motors' 4 °/s, with twice the tracking resolution.
+4. **Long gotos (2026-11-05):** 90° gotos from Stellarium stalled at full speed at 6 °/s and at 5 °/s, and ran cleanly at 4 °/s. At 12 V the 0.9° motors run out of voltage headroom around 300–400 rpm; short tests had only passed through that range.
+5. **Lost position:** after a power-up away from home, OnStepX's position was 90° off in RA. Gotos then stayed on one side of the meridian and seemed to ignore limits, which looked like a reversed RA. Moving to the real home and rebooting fixed it; a west move and a test goto confirmed **REVERSE OFF** on both axes.
+6. **Result:** 4 °/s default with a 2 s acceleration ramp and direct gotos (`GOTO_OFFSET 0`) — the same speed as the stock motors, with twice the tracking resolution.
 
-The torque estimate below (from the MOONS' curve) predicted 4 °/s would be comfortable; in practice the driver tuning, not the torque, was the limit.
+The torque estimate below (from the MOONS' curve) predicted 4 °/s comfortable and 6 °/s plausible; on the mount, 4 °/s is what holds up in long gotos at 12 V.
 
 ## The motors
 
@@ -49,7 +51,7 @@ At the Juwei's ~404:1 reduction, the motors spin at **~270 rpm at 4 °/s** and ~
 
 ¹ × 404 reduction × an assumed 75 % efficiency for the belt and harmonic drive — a rough estimate.
 
-A balanced scope needs far less than this, so **4 °/s at 12 V is comfortable and 6 °/s is plausible** — 6 °/s is now confirmed on the mount without a telescope. Our goto current (below) is about 77 % of the 1.5 A used for the curve, so low-speed torque is somewhat lower than shown. Do **not** switch the mount to 24 V unless the Juwei board's regulators, drivers and the 12 V RA brake are confirmed to handle it.
+A balanced scope needs far less than this, so **4 °/s at 12 V is comfortable and 6 °/s is plausible** on paper. On the mount, long gotos stall at 5–6 °/s even without a telescope; 4 °/s is reliable. Our goto current (below) is about 77 % of the 1.5 A used for the curve, so low-speed torque is somewhat lower than shown. Do **not** switch the mount to 24 V unless the Juwei board's regulators, drivers and the 12 V RA brake are confirmed to handle it.
 
 ## Final settings
 
@@ -63,8 +65,9 @@ A balanced scope needs far less than this, so **4 °/s at 12 V is comfortable an
 | `AXIS1_REVERSE` / `AXIS2_REVERSE` | ON / OFF | **OFF / OFF** | tested on the mount |
 | Decay tracking / goto | StealthChop / SpreadCycle | StealthChop / SpreadCycle | with the tuned chopper |
 | `TMC_SPI_CHOPCONF_*`, `TMC_SPI_PWMCONF_AUTOGRAD` | upstream | **3 / 4 / 1 / 2, autograd on** | see [Chopper tuning](configuration.md#chopper-tuning-for-the-09-motors) |
-| `SLEW_RATE_BASE_DESIRED` | 4.0 | **6.0** | 10 °/s only ~90 % reliable |
-| `SLEW_ACCELERATION_DIST` / `SLEW_RAPID_STOP_DIST` | 6 / 2 | **9 / 5** | 3 s ramp; gentler emergency stop |
+| `SLEW_RATE_BASE_DESIRED` | 4.0 | **4.0** | 5 and 6 °/s stall in long gotos at 12 V |
+| `SLEW_ACCELERATION_DIST` / `SLEW_RAPID_STOP_DIST` | 6 / 2 | **4 / 2** | 2 s to full speed; 1 s emergency stop |
+| `GOTO_OFFSET` | 0.25 | **0** | no overshoot-and-return at the end of a goto |
 
 Current values are **peak** mA as OnStepX uses them, assuming 0.075 Ω sense resistors (see [configuration.md](configuration.md#motor-current)). With Advanced Configuration enabled in the web server, new `Config.h` axis values only take effect after *Revert to Defaults* (or `:SXA1,R#` / `:SXA2,R#` and a reboot) — see [FLASHING.md](../FLASHING.md#axis-settings-when-advanced-configuration-is-on).
 

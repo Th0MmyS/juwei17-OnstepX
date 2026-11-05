@@ -31,9 +31,9 @@ This page explains every setting in [`Config.h`](../Config.h) that differs from 
 | `ST4_INTERFACE` | `ON` | `OFF` | ST4 guide port / hand controller |
 | `ST4_HAND_CONTROL_FOCUSER` | `OFF` | `ON` | No focuser fitted |
 | `GUIDE_TIME_LIMIT` | `0` | `10` | No time limit on guide commands |
-| `SLEW_RATE_BASE_DESIRED` | `6.0` | `1.0` | Goto speed in °/s; 10 °/s worked only ~90 % of the time |
-| `SLEW_ACCELERATION_DIST` | `9.0` | `5.0` | 3 s to full speed at 6 °/s (2 °/s²) |
-| `SLEW_RAPID_STOP_DIST` | `5.0` | `2.0` | Emergency braking 3.6 °/s² at 6 °/s instead of ~9 °/s² |
+| `SLEW_RATE_BASE_DESIRED` | `4.0` | `1.0` | Goto speed in °/s; long gotos stall at 5 and 6 °/s on 12 V |
+| `SLEW_ACCELERATION_DIST` | `4.0` | `5.0` | 2 s to full speed at 4 °/s (2 °/s²) |
+| `GOTO_OFFSET` | `0` | `0.25` | Gotos go straight to the target, without stopping short first — see [Mount behaviour](#mount-behaviour) |
 | `MFLIP_AUTOMATIC_DEFAULT` / `_MEMORY` | `ON` / `ON` | `OFF` / `OFF` | Automatic meridian flips, remembered across power cycles |
 | `MFLIP_PAUSE_HOME_MEMORY` | `ON` | `OFF` | Remember the "pause at home during flip" setting |
 | `PIER_SIDE_PREFERRED_DEFAULT` | `EAST` | `BEST` | Predictable orientation when a target is reachable from either side |
@@ -57,7 +57,7 @@ On ESP32 the fastest step period is 40 µs in `SQUARE` and 25 µs in `PULSE` ([E
 | 16 | ~3.5 °/s | ~5.6 °/s |
 | 32 (no switching) | ~1.7 °/s | ~2.8 °/s |
 
-At 6 °/s we use about a quarter of the available step rate (`:GX99#` reports the limit: 3.125 µs per tracking step). Above that, the motors are the limit, not the ESP32. If a desired rate exceeds the cap, the firmware silently drops the default rate to half the cap ([Goto.cpp](../src/telescope/mount/goto/Goto.cpp), `usPerStepLowerLimit`).
+At 4 °/s we use under a fifth of the available step rate (`:GX99#` reports the limit: 3.125 µs per tracking step). Above that, the motors are the limit, not the ESP32. If a desired rate exceeds the cap, the firmware silently drops the default rate to half the cap ([Goto.cpp](../src/telescope/mount/goto/Goto.cpp), `usPerStepLowerLimit`).
 
 ### Acceleration
 
@@ -65,19 +65,24 @@ OnStepX accelerates at **a = v² ÷ (2 × distance)** ([Goto.cpp:693](../src/tel
 
 | | Value |
 |---|---|
-| Normal acceleration (6 °/s, 9°) | 2 °/s², full speed after 3 s |
-| Emergency stop (abort / limit hit, `SLEW_RAPID_STOP_DIST` 5°) | 3.6 °/s², about 1.7 s |
-| Gotos that never reach full speed | shorter than ~18° |
+| Normal acceleration (4 °/s, 4°) | 2 °/s², full speed after 2 s |
+| Emergency stop (abort / limit hit, `SLEW_RAPID_STOP_DIST` 2°, default) | 4 °/s², about 1 s |
+| Gotos that never reach full speed | shorter than ~8° |
 
 Time to full speed is 2 × distance ÷ speed, so for a different ramp time: distance = time × speed ÷ 2.
 
 ### What else follows the slew rate
 
-- Manual move rates 8 and 9 (app / hand controller, *VF* / *VVF* in the web server's guide tile) are half and full slew rate: **3 and 6 °/s**.
+- Manual move rates 8 and 9 (app / hand controller, *VF* / *VVF* in the web server's guide tile) are half and full slew rate: **2 and 4 °/s**.
 - Homing, parking and meridian flips run at the slew rate.
-- The web server's goto rate buttons change it at runtime from 50 % to 200 %: **3 / 4.5 / 6 / 9 / 12 °/s**. 12 °/s stalls; 9 °/s is close to the limit. `SLEW_RATE_MEMORY` is `OFF`, so it resets to 6 °/s at every boot.
+- The web server's goto rate buttons change the step period by ×2, ×1.5, ×1, ÷1.5, ÷2, so the speeds are **2 / 2.7 / 4 / 6 / 8 °/s** (*VSlow* … *VFast*). *Fast* and *VFast* stall in long gotos. `SLEW_RATE_MEMORY` is `OFF`, so it resets to 4 °/s at every boot.
 
-Speed tests with the MOONS' motors, no telescope (2026-11-04): 5 and 7.5 °/s clean, 10 °/s about 90 % successful — hence 6 °/s as the default.
+Speed tests with the MOONS' motors, no telescope:
+
+- 2026-11-04, short moves: 5 and 7.5 °/s clean, 10 °/s about 90 % successful.
+- 2026-11-05, long Stellarium gotos (~90°): **6 and 5 °/s stall once at full speed; 4 °/s runs cleanly** — hence 4 °/s.
+
+At 12 V the 0.9° motors run out of voltage headroom at a few hundred rpm (4 °/s ≈ 270 rpm, 6 °/s ≈ 400 rpm): the driver can no longer push the set current into the coils, so more current does not help. Passing through that band while accelerating works; cruising in it stalls. A higher supply voltage is the only way to faster gotos ([future_plans.md](future_plans.md#bigger-projects)).
 
 ## Motor current
 
@@ -140,13 +145,13 @@ With upstream OnStepX's TMC5160 settings the MOONS' motors vibrated strongly and
 | SpreadCycle `TOFF / HSTRT / HEND / TBL` | 4 / 0 / 0 / 1 | **3 / 4 / 1 / 2** | Upstream has almost no hysteresis, so current regulation is poor; these are the values from Trinamic's TMC5160 datasheet example (`CHOPCONF 0x000100C3`) |
 | StealthChop `pwm_autograd` | 0 (off) | **1 (on)** | Lets StealthChop compensate the motor's back-EMF as speed rises; it is the TMC5160's own power-on default |
 
-This repository makes them overridable (`TMC_SPI_CHOPCONF_*`, `TMC_SPI_PWMCONF_AUTOGRAD` in `Config.h`); without those lines the driver behaves exactly like upstream. After the change, SpreadCycle gotos ran cleanly up to 7.5 °/s, and archcam on Cloudy Nights reached 10 °/s with the same motors on a MaxPCB4 board.
+This repository makes them overridable (`TMC_SPI_CHOPCONF_*`, `TMC_SPI_PWMCONF_AUTOGRAD` in `Config.h`); without those lines the driver behaves exactly like upstream. After the change, SpreadCycle moves ran cleanly up to 7.5 °/s in short tests (archcam on Cloudy Nights reached 10 °/s with the same motors on a MaxPCB4 board), but long gotos are only reliable at 4 °/s at 12 V — see [What else follows the slew rate](#what-else-follows-the-slew-rate).
 
 ## Mount behaviour
 
 - **`MOUNT_ENABLE_IN_STANDBY ON`** — motor drivers stay energised at hold current after boot, after parking and after a home reset ([Mount.cpp:68](../src/telescope/mount/Mount.cpp), [Park.cpp:201](../src/telescope/mount/park/Park.cpp)). With `TRACK_AUTOSTART OFF` the mount otherwise sits unpowered until the first goto, held only by the gear train — and the RA brake releases as soon as the board has power. While parked, `MOUNT_DISABLE_WHEN_PARKED` takes over (next item).
 - **`MOUNT_DISABLE_WHEN_PARKED ON`** (added in this repo, not upstream OnStepX) — the motors are powered down while parked, and the shared enable pin GPIO12 follows motor power (HIGH = off), as the factory firmware did. Park completion, unpark, `:Te#`, gotos, guiding, home reset and motor faults all switch power through `Mount::enable()`, which refuses to power up while parked and then drives GPIO12 ([Mount.cpp](../src/telescope/mount/Mount.cpp)). At boot GPIO12 stays LOW through the TMC5160 calibration, then goes HIGH if the mount is parked. A failed park leaves the motors holding. Set `OFF` to get stock OnStepX behaviour back. Whether this also engages the RA brake depends on its wiring — see [hardware.md](hardware.md#ra-brake).
-- **`GOTO_OFFSET 0.25`** (default) — every goto first aims 0.25° short in both axes, waits, then makes a short final move, so the last approach is always from the same direction and any slack (the belt stage in front of the harmonic drive, reported DEC backlash) is taken up consistently ([Goto.cpp:129](../src/telescope/mount/goto/Goto.cpp)).
+- **`GOTO_OFFSET 0`** — gotos go straight to the target. The default (0.25°) first aims short in both axes, waits, then makes a short final move, so the last approach always comes from the same direction and any slack (the belt stage in front of the harmonic drive, reported DEC backlash) is taken up consistently ([Goto.cpp:129](../src/telescope/mount/goto/Goto.cpp)). The harmonic drive has almost no play, so the overshoot-and-return was dropped (2026-11-05); set `0.25` again if goto pointing turns out less repeatable.
 - **`MFLIP_SKIP_HOME OFF`** (default) — a goto that changes pier side first slews to home (counterweight down), with an extra avoidance move if the scope is low, then to the target ([Goto.cpp:143](../src/telescope/mount/goto/Goto.cpp)). Going direct (`ON`) is faster but the scope can sweep lower than either end point mid-move. `MFLIP_PAUSE_HOME` only works with the home waypoint.
 - **`PIER_SIDE_PREFERRED_DEFAULT EAST`** — 10.27 also offers `AUTOMATIC` (prefers west near the under-pole meridian, east otherwise).
 
@@ -155,7 +160,6 @@ This repository makes them overridable (`TMC_SPI_CHOPCONF_*`, `TMC_SPI_PWMCONF_A
 | Setting | Why it stays |
 |---|---|
 | `MOUNT_COORDS_MEMORY OFF` | Saves the position every second; the firmware refuses to build without FRAM memory ([Mount.cpp:24](../src/telescope/mount/Mount.cpp)). The board uses ESP32 flash (`NV_DEFAULT`), which would wear out. Needs an MB85RC64 FRAM on I2C plus `NV_DRIVER NV_MB85RC64` (which resets stored settings). |
-| `GOTO_OFFSET 0.25` | See above; the SAL-33 uses `0`. |
 | `AXISn_DRIVER_DECAY*` | See [Decay modes](#decay-modes). |
 | `TRACK_AUTOSTART OFF` | Tracking after an unexpected power cycle can drive the scope into the tripod. |
 
@@ -170,9 +174,9 @@ The MLAstro SAL-33 is a commercial harmonic mount running OnStepX 10.27 with a T
 | Driver status `ON` | Tried; doesn't work on this board (no readback line) |
 | `MOUNT_ENABLE_IN_STANDBY ON` | Adopted |
 | `MFLIP_SKIP_HOME OFF` | Adopted |
-| Acceleration distance 6° | Adopted, later 9° at 6 °/s |
+| Acceleration distance 6° | Adopted, now 4° at 4 °/s |
 | StealthChop for gotos | Tested with the MOONS' motors: stalls above ~1.5 °/s; SpreadCycle with tuned chopper is better |
-| `GOTO_OFFSET 0` | Not adopted (belt slack) |
+| `GOTO_OFFSET 0` | Adopted 2026-11-05 |
 | `MOUNT_COORDS_MEMORY ON` | Not possible without FRAM |
 | `TRACK_AUTOSTART ON` | Not adopted (safety) |
 | OnStepX 10.27 | Adopted as upstream 10.27m — see [upgrading-to-10.27.md](upgrading-to-10.27.md) |

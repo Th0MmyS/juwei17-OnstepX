@@ -31,7 +31,8 @@ Key settings (full explanation in [docs/configuration.md](docs/configuration.md)
 
 | Mount behaviour | |
 |---|---|
-| Slew speed / acceleration | 6 °/s, full speed after 3 s (9°) |
+| Slew speed / acceleration | 4 °/s, full speed after 2 s (4°); faster stalls at 12 V |
+| Goto approach | direct to the target, no overshoot (`GOTO_OFFSET 0`) |
 | Step signal | `PULSE` |
 | Meridian flips | automatic, routed through home |
 | Motors in standby | powered (hold position) |

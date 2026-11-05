@@ -43,7 +43,9 @@ Ideas for improving the Juwei 17, roughly in order of value for money. Tick item
 
 ## Bigger projects
 
-- [x] **MOONS' 0.9° motors** (MS17HA2P4150-M / MS17HA2P4150). *Fitted 2026-11-03/04.* Chopper tuned for SpreadCycle gotos; 6 °/s default with a 3 s ramp. Findings and settings: [motor-upgrade-plan.md](motor-upgrade-plan.md).
+- [x] **MOONS' 0.9° motors** (MS17HA2P4150-M / MS17HA2P4150). *Fitted 2026-11-03/04.* Chopper tuned for SpreadCycle gotos; 4 °/s default with a 2 s ramp (5–6 °/s stall at 12 V). Findings and settings: [motor-upgrade-plan.md](motor-upgrade-plan.md).
+
+- [ ] **Higher supply voltage for faster gotos.** At 12 V the 0.9° motors stall in long gotos above ~4 °/s; 24 V would roughly double the speed headroom. First check that the board's regulator, its capacitors and the 12 V RA brake can take it (the TMC5160 drivers can). A 13.8 V supply is safe but gains little.
 
 - [ ] **OnStepX 10.29+** once it has a few patch releases. Brings tracking/pulse-guide rate fixes and ESP32 core 3.x support; costs another settings reset and removing `LIMIT_STRICT` from `Config.h` ([upgrading-to-10.27.md](upgrading-to-10.27.md)).
 

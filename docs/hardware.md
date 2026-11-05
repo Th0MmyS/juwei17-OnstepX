@@ -13,7 +13,7 @@ Facts about the mount and its controller that the configuration depends on. Most
 
   With the MOONS' 0.9° motors at 32 microsteps the candidates are **14222.2** (400:1) and **14364.4** (404:1); this repository uses **RA 14326.8** and **DEC 14364.8** (the stock-motor values 7163.4 / 7182.4 doubled). A plate-solved goto settles it: see [future_plans.md](future_plans.md).
 - **RA has no mechanical hard stop**, which is why RA limits are extended to ±190°. **DEC** can drive the telescope into the tripod, hence the −10° lower limit.
-- **Backlash:** owners find no mechanical play, yet PHD2's Guiding Assistant reports 3–4 s of DEC backlash while guiding stays at ~0.6″. Owners regard this as a known PHD2 quirk on strain-wave mounts ("as long as your mount reacts fine during guiding, just ignore it"). A likely contributor is the small elastic wind-up of the harmonic gear and belt when DEC reverses. `GOTO_OFFSET` stays at 0.25° so gotos always approach from the same direction.
+- **Backlash:** owners find no mechanical play, yet PHD2's Guiding Assistant reports 3–4 s of DEC backlash while guiding stays at ~0.6″. Owners regard this as a known PHD2 quirk on strain-wave mounts ("as long as your mount reacts fine during guiding, just ignore it"). A likely contributor is the small elastic wind-up of the harmonic gear and belt when DEC reverses. `GOTO_OFFSET` is 0 (gotos go straight to the target); setting it back to 0.25° makes gotos always approach from the same direction.
 
 ## RA brake
 
@@ -66,7 +66,7 @@ MOONS' wiring (6-pin JST PH socket, 4 pins used): pins 1 (black) + 3 (green) are
 | Driver | TMC2208 (early units) / TMC2209 (later), generic modules | **TMC5160** (SPI) |
 | Current setting | trimmer (Vref) on the module; ~350–400 mA early, ~750–850 mA later | from `Config.h` / web UI |
 | Chopper | StealthChop only, no UART/SPI control | StealthChop tracking, SpreadCycle gotos, [tuned](configuration.md#chopper-tuning-for-the-09-motors) |
-| Practical slew speed | ~2.6–3 °/s | 6 °/s with the MOONS' motors (10 °/s works ~90 % of the time) |
+| Practical slew speed | ~2.6–3 °/s | 4 °/s with the MOONS' motors at 12 V (long gotos stall at 5–6 °/s; short moves reach 10 °/s) |
 
 Notes from owners who swapped to TMC5160:
 

@@ -80,10 +80,11 @@ Two rules that save a lot of confusion:
 
 ## Step 1 — Take the board out
 
-1. Unplug the mount's power.
-2. Take the controller board out of the mount.
-3. **Disconnect both motor cables** from the board (label them RA and DEC first).
-4. Leave the 12 V power plug and the USB cable available — you need both.
+1. **Park the mount or send it home first.** At power-up OnStepX assumes it is at home (or at the park position, if parked). Switched off anywhere else, it loses its position and gotos land in the wrong place.
+2. Unplug the mount's power.
+3. Take the controller board out of the mount.
+4. **Disconnect both motor cables** from the board (label them RA and DEC first).
+5. Leave the 12 V power plug and the USB cable available — you need both.
 
 ## Step 2 — Back up the ESP32 (OnStepX)
 
@@ -209,7 +210,7 @@ Once Advanced Configuration is enabled, the mount uses the values stored on it a
 2. Reconnect the motor cables (RA and DEC as labelled) and reinstall the board.
 3. Power on, connect with your app (Bluetooth name **`OnStepX`**, or WiFi `Juwei17`).
 4. Re-enter site, date/time, limits and backlash; set and save the park position. Check the longitude sign and the UTC offset: OnStep counts the hours *added to local time to get UTC*, so central European winter time is **−01** (`:SG-01#`) and summer time −02. A wrong site or clock puts the mount on the wrong pier side, and then both axes seem to move the wrong way.
-5. Test: move each axis slowly, then a goto at the default rate (6 °/s); park and unpark (listen for the brake click on park); power-cycle once while parked to confirm it boots normally. After a few slews check that drivers and motors are only warm.
+5. Test: move each axis slowly, then a goto at the default rate (4 °/s); park and unpark (listen for the brake click on park); power-cycle once while parked to confirm it boots normally. After a few slews check that drivers and motors are only warm.
 
 ## Axis settings when Advanced Configuration is on
 
@@ -255,6 +256,9 @@ A bad flash cannot brick either chip: their bootloaders are in read-only memory,
 | Mount does nothing after the upgrade | Stored settings were reset: re-enter site, date/time and limits, then unpark. |
 | New `Config.h` axis values (reverse, currents, microsteps) have no effect | Advanced Configuration is on, so the stored values win: [load the defaults](#axis-settings-when-advanced-configuration-is-on). |
 | Both axes suddenly move the wrong way | Check site and time first (longitude sign, UTC offset, date): the wrong pier side flips both directions. Change `AXISn_REVERSE` only if they are correct. |
+| Gotos land on the wrong side of the meridian, limits seem ignored, *Home* stops away from the real home | The mount was powered on (or lost steps) away from home, so its position is off. Move it to the real home with the arrow buttons (counterweight down, pointing at the pole) and use *Home (Reset)*, or reboot it there. Park or go home before switching off. |
+| A change on the web page's axis tile (e.g. *Reverse*) does nothing | Axis settings take effect only after *Reboot OnStep!* (or a power-cycle). |
+| To check RA direction | Stand south of the mount facing the pole and move west: the telescope end must turn to your left. |
 | Motors vibrate, buzz loudly or stall during gotos | The SpreadCycle chopper settings don't suit the motors. This repository's `TMC_SPI_CHOPCONF_*` values fix it for the MOONS' 0.9° motors — [chopper tuning](docs/configuration.md#chopper-tuning-for-the-09-motors). |
 | Web page shows "Editing of this axis has been disabled" | The web server is older than 2.09 (it uses the old `:GXA1#` command). Flash 2.09g (steps 6–8), enable Advanced Configuration, reboot OnStep. |
 | Web page loads but shows no mount data | OnStepX and the web server must both start at 9600 baud (`SERIAL_B_BAUD_DEFAULT` in OnStepX, `SERIAL_BAUD_DEFAULT` in the web server) with `SERIAL_SWAP AUTO` — the defaults in this repository. |
